@@ -1,3 +1,6 @@
+allowBuilds:
+  esbuild: true
+saveExact: true
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.8
   vite-plus: 0.2.8
@@ -8,3 +11,17 @@ peerDependencyRules:
     - vite
   allowedVersions:
     vite: "*"
+minimumReleaseAgeExclude:
+  - '@tanstack/history@1.162.1'
+  - '@tanstack/react-router@1.170.21'
+  - '@tanstack/router-core@1.171.18'
+  - lucide-react@1.29.0
+  - '@storybook/builder-vite@10.5.7'
+  - '@storybook/csf-plugin@10.5.7'
+  - '@storybook/react-dom-shim@10.5.7'
+  - '@storybook/react-vite@10.5.7'
+  - '@storybook/react@10.5.7'
+  - '@storybook/tanstack-react@10.5.7'
+  - '@tanstack/router-generator@1.167.24'
+  - '@tanstack/router-plugin@1.168.26'
+  - storybook@10.5.7

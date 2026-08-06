@@ -1,3 +1,13 @@
+<!-- DEVELOPMENT GUID START -->
+
+- To have a consistent typography please use Text component from '#ui' package.
+- For test use `.spec.` convention.
+- Use `react-hook-form` for form management.
+- Use `valibot` for client side schema validation.
+- In reusable components that render form controls, derive element `id`/`htmlFor` from React's `useId()`.
+- Never use Tailwind arbitrary values (`[...]`). Use standard utilities, named theme tokens, or a dedicated CSS class instead. Reuse an existing theme token with the same purpose before adding a new token, even when its color differs from the design reference.
+<!-- DEVELOPMENT GUIDE END -->
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web

@@ -1,0 +1,162 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./lib/styles/variants.css";
+
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/newsreader";
+
+:root {
+  interpolate-size: allow-keywords;
+
+  --surface: hsl(195, 25%, 97%);
+  --primary: hsl(205, 15%, 23%);
+  --sage: hsl(94 13% 55%);
+  --honey: hsl(34 69% 61%);
+  --ink: hsl(215 12% 15%);
+
+  /* ── Paper scale ─────────────────────────────────────────── */
+  --surface-sunk: hsl(from var(--surface) h calc(s - 13) calc(l - 4));
+  --surface-soft: hsl(from var(--surface) h calc(s + 10) calc(l + 2));
+
+  /* ── Clay scale ──────────────────────────────────────────── */
+  --primary-50: hsl(from var(--primary) h calc(s + 10) calc(l + 44));
+  --primary-300: hsl(from var(--primary) h calc(s + 6) calc(l + 20));
+  --primary-600: hsl(from var(--primary) h s calc(l - 8));
+  --primary-700: hsl(from var(--primary) h calc(s + 3) calc(l - 18));
+
+  /* ── Sage scale ──────────────────────────────────────────── */
+  --sage-50: hsl(from var(--sage) h calc(s + 9) calc(l + 38));
+  --sage-600: hsl(from var(--sage) h s calc(l - 14));
+
+  /* ── Honey scale ─────────────────────────────────────────── */
+  --honey-50: hsl(from var(--honey) h calc(s + 9) calc(l + 31));
+  --honey-600: hsl(from var(--honey) h calc(s - 17) calc(l - 10));
+
+  /* ── Ink / border scale ──────────────────────────────────── */
+  --ink-200: hsl(from var(--surface) h calc(s - 23) calc(l - 10));
+  --ink-500: hsl(from var(--ink) h calc(s - 3) calc(l + 25));
+
+  /* ── Tailwind semantic tokens ─────────────────────────────── */
+  --background: var(--surface);
+  --foreground: var(--ink);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: var(--ink);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: var(--ink);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: var(--sage-600);
+  --secondary-subtle: var(--sage-50);
+  --secondary-foreground: var(--sage-50);
+  --primary-subtle: var(--surface-sunk);
+  --muted: var(--surface-sunk);
+  --muted-foreground: var(--ink-500);
+  --accent: var(--primary-50);
+  --accent-foreground: var(--primary-700);
+  --destructive: hsl(7, 49%, 53%);
+  --border: var(--ink-200);
+  --input: var(--ink-200);
+  --ring: var(--primary);
+  --radius: 0.5rem;
+
+  --chart-1: var(--primary);
+  --chart-2: var(--sage);
+  --chart-3: var(--honey);
+  --chart-4: hsl(130, 20%, 46%);
+  --chart-5: var(--primary-300);
+}
+
+@theme inline {
+  --font-display: "Newsreader Variable", serif;
+  --font-sans: "Geist Variable", sans-serif;
+  --font-heading: var(--font-sans);
+
+  --color-sidebar: var(--surface);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+
+  --color-honey-600: var(--honey-600);
+  --color-honey-50: var(--honey-50);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-subtle: var(--secondary-subtle);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  --radius-sm: calc(var(--radius) * 0.5); /* 4px */
+  --radius-md: var(--radius); /* 8px */
+  --radius-lg: var(--radius); /* 8px */
+  --radius-xl: calc(var(--radius) * 1.5); /* 12px */
+  --radius-2xl: calc(var(--radius) * 2); /* 16px */
+  --radius-3xl: calc(var(--radius) * 2.5); /* 20px */
+  --radius-4xl: calc(var(--radius) * 3); /* 24px */
+
+  --shadow-xs: 0 1px 2px hsl(200 46% 34% / 0.06);
+  --shadow-sm: 0 2px 6px hsl(200 46% 34% / 0.07), 0 1px 2px hsl(200 46% 34% / 0.05);
+  --shadow-md: 0 6px 18px hsl(200 46% 34% / 0.08), 0 2px 5px hsl(200 46% 34% / 0.05);
+  --shadow-lg: 0 16px 40px hsl(200 46% 34% / 0.12), 0 4px 10px hsl(200 46% 34% / 0.06);
+  --shadow-xl: 0 28px 64px hsl(200 46% 34% / 0.16);
+
+  --animate-spin-around: spin-around 0.8s linear infinite;
+  --animate-btn-tide: hb-tide 1.5s ease-in-out infinite alternate;
+
+  @keyframes spin-around {
+    0% {
+      transform: rotate(-90deg);
+    }
+    100% {
+      transform: rotate(270deg);
+    }
+  }
+
+  @keyframes hb-tide {
+    0% {
+      translate: 0 0;
+    }
+    100% {
+      translate: calc(100cqw - 100%) 0;
+    }
+  }
+}
+
+/* shadow-inset — recessed well for inputs, tracks, toggle trays */
+@utility shadow-inset {
+  box-shadow: inset 0 1px 2px rgba(58, 46, 34, 0.06);
+}
+
+@utility container-inline-size {
+  container-type: inline-size;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
+}

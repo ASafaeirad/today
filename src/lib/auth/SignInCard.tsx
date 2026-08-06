@@ -1,16 +1,16 @@
-import { useRouter } from "@tanstack/react-router";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
 
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Text } from "#ui";
 
 interface Props {
-  redirectTo?: any;
+  redirectTo?: string;
 }
 
 export function SignInCard({ redirectTo = "/" }: Props) {
+  const { signIn } = useAuthActions();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
-  const router = useRouter();
 
   return (
     <Card className="mx-auto w-full max-w-sm">
@@ -25,7 +25,13 @@ export function SignInCard({ redirectTo = "/" }: Props) {
           onClick={() => {
             setError(undefined);
             setPending(true);
-            router.navigate(redirectTo);
+            signIn("github", redirectTo ? { redirectTo } : undefined)
+              .catch((signInError) => {
+                setError(signInError instanceof Error ? signInError.message : "Sign in failed");
+              })
+              .finally(() => {
+                setPending(false);
+              });
           }}
         >
           Sign in with GitHub

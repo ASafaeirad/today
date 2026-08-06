@@ -37,6 +37,6 @@ export default defineConfig({
     ignorePatterns: ["convex/_generated/**", "src/routeTree.gen.ts"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },
-    options: { typeAware: true, typeCheck: true },
+    options: { typeAware: true, typeCheck: true, esm: false },
   }),
 });

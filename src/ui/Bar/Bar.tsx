@@ -4,32 +4,29 @@ import { cva } from "class-variance-authority";
 
 import { cn } from "#lib/cn";
 
-const barVariants = cva(
-  "no-scrollbar flex animate-sweep items-stretch overflow-x-auto whitespace-nowrap",
-  {
-    variants: {
-      variant: {
-        /* Window furniture: the strip a terminal keeps at its edges. */
-        chrome: "bg-chrome text-muted-foreground",
-        /* A surface the record sits on rather than a boundary. */
-        panel: "bg-panel text-muted-foreground",
-        /* Reserved for the ceremony — the only bar that raises its voice. */
-        accent: "bg-accent font-bold tracking-brand text-accent-foreground",
-        /* An annotation carried by the record itself. */
-        note: "tone-seal tone-tint tone-fg",
-      },
-      placement: {
-        top: "border-b border-border",
-        bottom: "border-t border-border",
-        none: "",
-      },
+const barVariants = cva("no-scrollbar flex items-stretch overflow-x-auto whitespace-nowrap", {
+  variants: {
+    variant: {
+      /* Window furniture: the strip a terminal keeps at its edges. */
+      chrome: "bg-chrome text-muted-foreground",
+      /* A surface the record sits on rather than a boundary. */
+      panel: "bg-panel text-muted-foreground",
+      /* Reserved for the ceremony — the only bar that raises its voice. */
+      accent: "bg-accent font-bold tracking-brand text-accent-foreground",
+      /* An annotation carried by the record itself. */
+      note: "tone-seal tone-tint tone-fg",
     },
-    defaultVariants: {
-      variant: "chrome",
-      placement: "top",
+    placement: {
+      top: "border-b border-border",
+      bottom: "border-t border-border",
+      none: "",
     },
   },
-);
+  defaultVariants: {
+    variant: "chrome",
+    placement: "top",
+  },
+});
 
 export type BarProps = React.ComponentProps<"div"> & VariantProps<typeof barVariants>;
 

@@ -15,7 +15,7 @@ export function CommandLine({ className, action, children, ...props }: CommandLi
       type="button"
       data-slot="command-line"
       className={cn(
-        "group/command block w-full animate-sweep border-b border-border bg-panel px-2.5 py-1.75 text-left text-base text-muted-foreground transition-colors outline-none hover:bg-chrome focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring active:animate-flash",
+        "group/command block w-full border-b border-border bg-panel px-2.5 py-1.75 text-left text-base text-muted-foreground transition-colors outline-none hover:bg-chrome focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring active:animate-flash",
         className,
       )}
       {...props}

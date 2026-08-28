@@ -1,4 +1,7 @@
-@custom-variant dark (&:is(.dark *));
+/* ── State variants ─────────────────────────────────────────────
+ * Prefer these over raw attribute selectors so state styling reads the same
+ * whether it comes from Base UI (`data-*`) or from ARIA (`aria-*`).
+ */
 
 @custom-variant data-open {
   &:where([data-state="open"]),
@@ -14,36 +17,49 @@
   }
 }
 
-@custom-variant data-checked {
-  &:where([data-state="checked"]),
-  &:where([data-checked]:not([data-checked="false"])) {
-    @slot;
-  }
-}
-
-@custom-variant data-unchecked {
-  &:where([data-state="unchecked"]),
-  &:where([data-unchecked]:not([data-unchecked="false"])) {
-    @slot;
-  }
-}
-
 @custom-variant data-selected {
-  &:where([data-selected="true"]) {
+  &:where([data-selected]:not([data-selected="false"])),
+  &:where([aria-selected="true"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-pressed {
+  &:where([data-pressed]:not([data-pressed="false"])),
+  &:where([aria-pressed="true"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-current {
+  &:where([aria-current]:not([aria-current="false"])) {
     @slot;
   }
 }
 
 @custom-variant data-disabled {
-  &:where([data-disabled="true"]),
-  &:where([data-disabled]:not([data-disabled="false"])) {
+  &:where([data-disabled]:not([data-disabled="false"])),
+  &:where([aria-disabled="true"]) {
     @slot;
   }
 }
 
-@custom-variant data-active {
-  &:where([data-state="active"]),
-  &:where([data-active]:not([data-active="false"])) {
+@custom-variant data-invalid {
+  &:where([data-invalid]:not([data-invalid="false"])),
+  &:where([aria-invalid="true"]) {
+    @slot;
+  }
+}
+
+/* Records that were missed read as struck out, wherever the part sits. */
+@custom-variant data-missed {
+  &:where([data-status="missed"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-sealed {
+  &:where([data-sealed]:not([data-sealed="false"])) {
     @slot;
   }
 }
@@ -60,6 +76,123 @@
   }
 }
 
+/* ── Tone ───────────────────────────────────────────────────────
+ * A record's meaning (done / missed / skipped / sealed) is carried down the
+ * tree as `--tone` + `--tone-contrast` instead of being drilled as props.
+ * Set one `tone-*` on the root; every part below paints itself from it.
+ */
+
+@utility tone-neutral {
+  --tone: var(--color-subtle-foreground);
+  --tone-contrast: var(--color-background);
+}
+
+@utility tone-muted {
+  --tone: var(--color-muted-foreground);
+  --tone-contrast: var(--color-background);
+}
+
+@utility tone-ink {
+  --tone: var(--color-foreground);
+  --tone-contrast: var(--color-inverted-foreground);
+}
+
+@utility tone-done {
+  --tone: var(--color-done);
+  --tone-contrast: var(--color-done-foreground);
+}
+
+@utility tone-missed {
+  --tone: var(--color-missed);
+  --tone-contrast: var(--color-missed-foreground);
+}
+
+@utility tone-skipped {
+  --tone: var(--color-skipped);
+  --tone-contrast: var(--color-skipped-foreground);
+}
+
+@utility tone-seal {
+  --tone: var(--color-accent);
+  --tone-contrast: var(--color-accent-foreground);
+}
+
+@utility tone-fg {
+  color: var(--tone);
+}
+
+@utility tone-bg {
+  background-color: var(--tone);
+  color: var(--tone-contrast);
+}
+
+@utility tone-border {
+  border-color: var(--tone);
+}
+
+@utility tone-tint {
+  background-color: color-mix(in srgb, var(--tone) 10%, transparent);
+}
+
+@utility tone-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--tone) 13%, transparent) 0 4px,
+    transparent 4px 9px
+  );
+}
+
+@utility tone-rail {
+  background-color: var(--tone);
+}
+
+@utility tone-rail-dashed {
+  background-image: repeating-linear-gradient(180deg, var(--tone) 0 2px, transparent 2px 5px);
+}
+
+/* ── Layout ─────────────────────────────────────────────────────
+ * The record grid: line number, name, state, operations. Narrow screens drop
+ * to number + name and let state and operations wrap underneath.
+ */
+
+@utility grid-record {
+  grid-template-columns: 2.75ch 1fr;
+}
+
+@utility grid-record-full {
+  grid-template-columns: 3.5ch minmax(6ch, 1fr) 8.5ch auto;
+}
+
+@utility grid-terminal {
+  grid-template-rows: auto 1fr auto;
+}
+
+/* Controls that sit shoulder to shoulder share one line between them. */
+@utility joined {
+  & > * {
+    position: relative;
+  }
+
+  & > * + * {
+    margin-inline-start: -1px;
+  }
+
+  & > *:hover,
+  & > *:focus-visible {
+    z-index: 1;
+  }
+}
+
+/* Glyph-sized icons: an icon is a character, so it measures like one. */
+@utility icon-inline {
+  & svg {
+    inline-size: 1.2em;
+    block-size: 1.2em;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+}
+
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -67,12 +200,4 @@
   &::-webkit-scrollbar {
     display: none;
   }
-}
-
-@utility shadow-inset {
-  box-shadow: inset 0 1px 2px rgba(58, 46, 34, 0.06);
-}
-
-@utility container-inline-size {
-  container-type: inline-size;
 }

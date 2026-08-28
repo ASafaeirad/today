@@ -1,42 +1,44 @@
-import type { VariantProps } from "class-variance-authority";
-
 import { StoryMatrix } from "#storybook/matrix";
 import preview from "#storybook/preview";
 
-import type { badgeVariants } from "./Badge.tsx";
+import { Badge, type BadgeProps } from "./Badge.tsx";
 
-import { Badge } from "./Badge.tsx";
+const meta = preview.meta({ component: Badge });
 
-type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
-
-const meta = preview.meta({
-  component: Badge,
-});
-
-const variants = [
-  "default",
+const tones = [
   "neutral",
-  "clay",
-  "sage",
-  "honey",
-  "success",
-  "warning",
-  "danger",
-  "info",
-  "outline",
-  "ghost",
-] as const satisfies BadgeVariant[];
+  "ink",
+  "done",
+  "missed",
+  "skipped",
+  "seal",
+] satisfies BadgeProps["tone"][];
 
 export const Matrix = meta.story({
   render: () => (
     <StoryMatrix
-      columns={variants.map((v) => ({ label: v }))}
-      rows={["Default", "With Dot"]}
+      columns={[{ label: "Text" }, { label: "Solid" }, { label: "Outline" }]}
+      rows={tones}
       cell={({ row, col }) => (
-        <Badge variant={col as BadgeVariant} dot={row === "With Dot"}>
-          {col}
+        <Badge
+          tone={row as BadgeProps["tone"]}
+          appearance={col.toLowerCase() as BadgeProps["appearance"]}
+        >
+          {row}
         </Badge>
       )}
     />
+  ),
+});
+
+export const Typed = meta.story({
+  render: () => (
+    <div className="flex gap-4">
+      {tones.map((tone) => (
+        <Badge key={tone} tone={tone} typed>
+          {tone}
+        </Badge>
+      ))}
+    </div>
   ),
 });

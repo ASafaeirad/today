@@ -1,162 +1,266 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "./lib/styles/variants.css";
 
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/newsreader";
+/*
+ * VIGIL — a console design system.
+ *
+ * Everything cuts, nothing fades. Elevation is drawn with 1px lines, never with
+ * shadow; emphasis is drawn by inverting ink and surface, never by rounding.
+ * Re-theme by editing the six base hues in `:root` (and their light-mode twins).
+ */
 
 :root {
   interpolate-size: allow-keywords;
+  color-scheme: dark;
 
-  --surface: hsl(195, 25%, 97%);
-  --primary: hsl(205, 15%, 23%);
-  --sage: hsl(94 13% 55%);
-  --honey: hsl(34 69% 61%);
-  --ink: hsl(215 12% 15%);
+  /* ── Base hues ─────────────────────────────────────────────── */
+  --surface: hsl(120 9% 4%);
+  --ink: hsl(109 45% 84%);
+  --done: hsl(127 69% 58%);
+  --missed: hsl(9 100% 62%);
+  --skipped: hsl(221 100% 75%);
+  --seal: hsl(43 72% 57%);
 
-  /* ── Paper scale ─────────────────────────────────────────── */
-  --surface-sunk: hsl(from var(--surface) h calc(s - 13) calc(l - 4));
-  --surface-soft: hsl(from var(--surface) h calc(s + 10) calc(l + 2));
+  /* ── Surface scale — lifted out of the void ────────────────── */
+  --surface-panel: hsl(from var(--surface) h s calc(l + 2));
+  --surface-chrome: hsl(from var(--surface) h s calc(l + 4.5));
+  --surface-line: hsl(from var(--surface) h calc(s + 1) calc(l + 9.5));
 
-  /* ── Clay scale ──────────────────────────────────────────── */
-  --primary-50: hsl(from var(--primary) h calc(s + 10) calc(l + 44));
-  --primary-300: hsl(from var(--primary) h calc(s + 6) calc(l + 20));
-  --primary-600: hsl(from var(--primary) h s calc(l - 8));
-  --primary-700: hsl(from var(--primary) h calc(s + 3) calc(l - 18));
+  /* ── Ink scale — faded back toward the surface ─────────────── */
+  --ink-dim: hsl(from var(--ink) h calc(s - 33) calc(l - 44));
+  --ink-dimmer: hsl(from var(--ink) h calc(s - 36) calc(l - 59));
 
-  /* ── Sage scale ──────────────────────────────────────────── */
-  --sage-50: hsl(from var(--sage) h calc(s + 9) calc(l + 38));
-  --sage-600: hsl(from var(--sage) h s calc(l - 14));
+  /* Text laid over a vivid fill: the far end of the surface scale. */
+  --on-vivid: var(--surface);
 
-  /* ── Honey scale ─────────────────────────────────────────── */
-  --honey-50: hsl(from var(--honey) h calc(s + 9) calc(l + 31));
-  --honey-600: hsl(from var(--honey) h calc(s - 17) calc(l - 10));
-
-  /* ── Ink / border scale ──────────────────────────────────── */
-  --ink-200: hsl(from var(--surface) h calc(s - 23) calc(l - 10));
-  --ink-500: hsl(from var(--ink) h calc(s - 3) calc(l + 25));
-
-  /* ── Tailwind semantic tokens ─────────────────────────────── */
+  /* ── Semantic aliases ──────────────────────────────────────── */
   --background: var(--surface);
   --foreground: var(--ink);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: var(--ink);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: var(--ink);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: var(--sage-600);
-  --secondary-subtle: var(--sage-50);
-  --secondary-foreground: var(--sage-50);
-  --primary-subtle: var(--surface-sunk);
-  --muted: var(--surface-sunk);
-  --muted-foreground: var(--ink-500);
-  --accent: var(--primary-50);
-  --accent-foreground: var(--primary-700);
-  --destructive: hsl(7, 49%, 53%);
-  --border: var(--ink-200);
-  --input: var(--ink-200);
-  --ring: var(--primary);
-  --radius: 0.5rem;
+  --panel: var(--surface-panel);
+  --chrome: var(--surface-chrome);
+  --border: var(--surface-line);
+  --input: var(--surface-line);
+  --ring: var(--ink);
+  --muted-foreground: var(--ink-dim);
+  --subtle-foreground: var(--ink-dimmer);
+  --inverted: var(--ink);
+  --inverted-foreground: var(--surface);
+  --accent: var(--seal);
+  --accent-foreground: var(--on-vivid);
+  --done-foreground: var(--on-vivid);
+  --missed-foreground: var(--on-vivid);
+  --skipped-foreground: var(--on-vivid);
+  --overlay: hsl(from var(--surface) h s 0 / 0.8);
 
-  --chart-1: var(--primary);
-  --chart-2: var(--sage);
-  --chart-3: var(--honey);
-  --chart-4: hsl(130, 20%, 46%);
-  --chart-5: var(--primary-300);
+  /* Square by contract. Raise it and every box follows. */
+  --radius: 0rem;
+}
+
+/*
+ * Light mode inverts the ink/surface relationship, so the scale steps run the
+ * other way — the offsets below are the dark ones mirrored, not new hues.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --surface: hsl(96 15% 94%);
+  --ink: hsl(100 41% 10%);
+  --done: hsl(129 60% 30%);
+  --missed: hsl(9 88% 38%);
+  --skipped: hsl(222 67% 43%);
+  --seal: hsl(42 100% 27%);
+
+  --surface-panel: hsl(from var(--surface) h s calc(l + 2));
+  --surface-chrome: hsl(from var(--surface) h s calc(l - 5));
+  --surface-line: hsl(from var(--surface) h calc(s - 1.5) calc(l - 14.5));
+
+  --ink-dim: hsl(from var(--ink) h calc(s - 30) calc(l + 28));
+  --ink-dimmer: hsl(from var(--ink) h calc(s - 32) calc(l + 49));
+
+  --on-vivid: var(--surface-panel);
+  --overlay: hsl(from var(--surface) h s 100 / 0.8);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --surface: hsl(96 15% 94%);
+    --ink: hsl(100 41% 10%);
+    --done: hsl(129 60% 30%);
+    --missed: hsl(9 88% 38%);
+    --skipped: hsl(222 67% 43%);
+    --seal: hsl(42 100% 27%);
+
+    --surface-panel: hsl(from var(--surface) h s calc(l + 2));
+    --surface-chrome: hsl(from var(--surface) h s calc(l - 5));
+    --surface-line: hsl(from var(--surface) h calc(s - 1.5) calc(l - 14.5));
+
+    --ink-dim: hsl(from var(--ink) h calc(s - 30) calc(l + 28));
+    --ink-dimmer: hsl(from var(--ink) h calc(s - 32) calc(l + 49));
+
+    --on-vivid: var(--surface-panel);
+    --overlay: hsl(from var(--surface) h s 100 / 0.8);
+  }
 }
 
 @theme inline {
-  --font-display: "Newsreader Variable", serif;
-  --font-sans: "Geist Variable", sans-serif;
-  --font-heading: var(--font-sans);
+  /* ── Type ──────────────────────────────────────────────────── */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --font-sans: var(--font-mono);
 
-  --color-sidebar: var(--surface);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  --text-xs: 0.625rem; /* 10px — column heads, slot status */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.6875rem; /* 11px — controls, row status */
+  --text-sm--line-height: 1.3;
+  --text-base: 0.75rem; /* 12px — the terminal body size */
+  --text-base--line-height: 1.25;
+  --text-lg: 0.9375rem; /* 15px — prompts, questions */
+  --text-lg--line-height: 1.35;
+  --text-xl: 1.125rem; /* 18px — the one heading size above a prompt */
+  --text-xl--line-height: 1.3;
 
-  --color-honey-600: var(--honey-600);
-  --color-honey-50: var(--honey-50);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-primary-subtle: var(--primary-subtle);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary-subtle: var(--secondary-subtle);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
+  --tracking-wide: 0.06em;
+  --tracking-wider: 0.1em;
+  --tracking-widest: 0.16em;
+  --tracking-brand: 0.22em;
+
+  /* ── Color ─────────────────────────────────────────────────── */
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-panel: var(--panel);
+  --color-chrome: var(--chrome);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-inverted: var(--inverted);
+  --color-inverted-foreground: var(--inverted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-done: var(--done);
+  --color-done-foreground: var(--done-foreground);
+  --color-missed: var(--missed);
+  --color-missed-foreground: var(--missed-foreground);
+  --color-skipped: var(--skipped);
+  --color-skipped-foreground: var(--skipped-foreground);
+  --color-overlay: var(--overlay);
 
-  --radius-sm: calc(var(--radius) * 0.5); /* 4px */
-  --radius-md: var(--radius); /* 8px */
-  --radius-lg: var(--radius); /* 8px */
-  --radius-xl: calc(var(--radius) * 1.5); /* 12px */
-  --radius-2xl: calc(var(--radius) * 2); /* 16px */
-  --radius-3xl: calc(var(--radius) * 2.5); /* 20px */
-  --radius-4xl: calc(var(--radius) * 3); /* 24px */
+  /* ── Radius ────────────────────────────────────────────────── */
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.5);
+  --radius-xl: calc(var(--radius) * 2);
 
-  --shadow-xs: 0 1px 2px hsl(200 46% 34% / 0.06);
-  --shadow-sm: 0 2px 6px hsl(200 46% 34% / 0.07), 0 1px 2px hsl(200 46% 34% / 0.05);
-  --shadow-md: 0 6px 18px hsl(200 46% 34% / 0.08), 0 2px 5px hsl(200 46% 34% / 0.05);
-  --shadow-lg: 0 16px 40px hsl(200 46% 34% / 0.12), 0 4px 10px hsl(200 46% 34% / 0.06);
-  --shadow-xl: 0 28px 64px hsl(200 46% 34% / 0.16);
+  /* ── Motion — steps, never easing ──────────────────────────── */
+  --animate-cut: cut 0.12s steps(2) both;
+  --animate-sweep: sweep 0.18s steps(14) both;
+  --animate-blackout: blackout 0.1s steps(3) both;
+  --animate-blink: blink 0.8s steps(1) infinite;
+  --animate-type: type 0.14s steps(8) both;
+  --animate-fill: fill 0.6s steps(24) forwards;
+  --animate-flash: flash 0.09s steps(2) 1;
 
-  --animate-spin-around: spin-around 0.8s linear infinite;
-  --animate-btn-tide: hb-tide 1.5s ease-in-out infinite alternate;
-
-  @keyframes spin-around {
-    0% {
-      transform: rotate(-90deg);
+  @keyframes cut {
+    from {
+      opacity: 0;
     }
-    100% {
-      transform: rotate(270deg);
+    to {
+      opacity: 1;
     }
   }
 
-  @keyframes hb-tide {
-    0% {
-      translate: 0 0;
+  @keyframes blackout {
+    from {
+      opacity: 1;
     }
-    100% {
-      translate: calc(100cqw - 100%) 0;
+    to {
+      opacity: 0;
     }
   }
-}
 
-/* shadow-inset — recessed well for inputs, tracks, toggle trays */
-@utility shadow-inset {
-  box-shadow: inset 0 1px 2px rgba(58, 46, 34, 0.06);
-}
+  @keyframes sweep {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
 
-@utility container-inline-size {
-  container-type: inline-size;
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes flash {
+    0%,
+    100% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: var(--inverted);
+    }
+  }
+
+  @keyframes type {
+    from {
+      width: 0;
+    }
+    to {
+      width: 100%;
+    }
+  }
+
+  @keyframes fill {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
+
+  html {
+    @apply font-mono;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-base text-foreground;
+    font-variant-ligatures: none;
   }
+
+  ::selection {
+    background: var(--inverted);
+    color: var(--inverted-foreground);
+  }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
-  html {
-    @apply font-sans;
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001s !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001s !important;
+    }
   }
 }

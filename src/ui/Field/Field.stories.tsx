@@ -1,165 +1,47 @@
+import { StoryMatrix } from "#storybook/matrix";
 import preview from "#storybook/preview";
 
-import { Button } from "../Button/Button.tsx";
-import { Checkbox } from "../Checkbox/Checkbox.tsx";
 import { Input } from "../Input/Input.tsx";
-import { Select, SelectOption } from "../Select/Select.tsx";
-import { Textarea } from "../Textarea/Textarea.tsx";
-import {
-  Field,
-  FieldDescription,
-  FieldLabel,
-  FieldSeparator,
-  FieldSet,
-  FieldGroup,
-  FieldLegend,
-} from "./Field.tsx";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "./Field.tsx";
 
-const meta = preview.meta({
-  component: Field,
+const meta = preview.meta({ component: Field });
+
+export const Matrix = meta.story({
+  render: () => (
+    <StoryMatrix
+      columns={[{ label: "Label only" }, { label: "Described" }, { label: "Invalid" }]}
+      rows={["Default", "Disabled"]}
+      cell={({ row, col }) => (
+        <Field
+          disabled={row === "Disabled"}
+          invalid={col === "Invalid"}
+          className="w-60"
+          name="note"
+        >
+          <FieldLabel>closing note</FieldLabel>
+          <Input sigil=">" placeholder="one line" />
+          {col === "Described" && (
+            <FieldDescription>Say plainly how the day went.</FieldDescription>
+          )}
+          {col === "Invalid" && <FieldError match>A note is required to lock.</FieldError>}
+        </Field>
+      )}
+    />
+  ),
 });
 
-const months = [
-  { label: "MM", value: null },
-  { label: "01", value: "01" },
-  { label: "02", value: "02" },
-  { label: "03", value: "03" },
-  { label: "04", value: "04" },
-  { label: "05", value: "05" },
-  { label: "06", value: "06" },
-  { label: "07", value: "07" },
-  { label: "08", value: "08" },
-  { label: "09", value: "09" },
-  { label: "10", value: "10" },
-  { label: "11", value: "11" },
-  { label: "12", value: "12" },
-];
-
-const years = [
-  { label: "YYYY", value: null },
-  { label: "2024", value: "2024" },
-  { label: "2025", value: "2025" },
-  { label: "2026", value: "2026" },
-  { label: "2027", value: "2027" },
-  { label: "2028", value: "2028" },
-  { label: "2029", value: "2029" },
-];
-
-export const Default = meta.story({
-  render: () => {
-    return (
-      <div className="w-full min-w-sm">
-        <form>
-          <FieldGroup>
-            <FieldSet>
-              <FieldLegend>Payment Method</FieldLegend>
-              <FieldDescription>All transactions are secure and encrypted</FieldDescription>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="checkout-7j9-card-name-43j">Name on Card</FieldLabel>
-                  <Input id="checkout-7j9-card-name-43j" placeholder="Evil Rabbit" required />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="checkout-7j9-card-number-uw1">Card Number</FieldLabel>
-                  <Input
-                    id="checkout-7j9-card-number-uw1"
-                    placeholder="1234 5678 9012 3456"
-                    required
-                  />
-                  <FieldDescription>Enter your 16-digit card number</FieldDescription>
-                </Field>
-                <div className="grid grid-cols-3 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="checkout-exp-month-ts6">Month</FieldLabel>
-                    <Select id="checkout-exp-month-ts6">
-                      {months.map((item) => (
-                        <SelectOption key={item.value} value={item.value ?? ""}>
-                          {item.label}
-                        </SelectOption>
-                      ))}
-                    </Select>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="checkout-7j9-exp-year-f59">Year</FieldLabel>
-                    <Select>
-                      {years.map((item) => (
-                        <SelectOption key={item.value} value={item.value ?? ""}>
-                          {item.label}
-                        </SelectOption>
-                      ))}
-                    </Select>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="checkout-7j9-cvv">CVV</FieldLabel>
-                    <Input id="checkout-7j9-cvv" placeholder="123" required />
-                  </Field>
-                </div>
-              </FieldGroup>
-            </FieldSet>
-            <FieldSeparator />
-            <FieldSet>
-              <FieldLegend>Billing Address</FieldLegend>
-              <FieldDescription>
-                The billing address associated with your payment method
-              </FieldDescription>
-              <FieldGroup>
-                <Field orientation="horizontal">
-                  <Checkbox id="checkout-7j9-same-as-shipping-wgm" defaultChecked />
-                  <FieldLabel htmlFor="checkout-7j9-same-as-shipping-wgm" className="font-normal">
-                    Same as shipping address
-                  </FieldLabel>
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-            <FieldSet>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="checkout-7j9-optional-comments">Comments</FieldLabel>
-                  <Textarea
-                    id="checkout-7j9-optional-comments"
-                    placeholder="Add any additional comments"
-                    className="resize-none"
-                  />
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-            <Field orientation="horizontal">
-              <Button type="submit">Submit</Button>
-              <Button variant="outline" type="button">
-                Cancel
-              </Button>
-            </Field>
-          </FieldGroup>
-        </form>
-      </div>
-    );
-  },
-});
-
-export const Invalid = meta.story({
-  render: () => {
-    return (
-      <div className="w-full min-w-sm">
-        <form>
-          <FieldGroup>
-            <FieldSet>
-              <FieldLegend>Payment Method</FieldLegend>
-              <FieldDescription>All transactions are secure and encrypted</FieldDescription>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="checkout-7j9-card-name-43j">Name on Card</FieldLabel>
-                  <Input
-                    aria-invalid={true}
-                    id="checkout-7j9-card-name-43j"
-                    placeholder="Evil Rabbit"
-                    required
-                  />
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-          </FieldGroup>
-        </form>
-      </div>
-    );
-  },
+export const Group = meta.story({
+  render: () => (
+    <FieldGroup className="w-72">
+      <Field name="note">
+        <FieldLabel>closing note</FieldLabel>
+        <Input sigil=">" placeholder="one line" />
+        <FieldDescription>Stored with the record. It cannot be edited later.</FieldDescription>
+      </Field>
+      <Field name="tag">
+        <FieldLabel>tag</FieldLabel>
+        <Input placeholder="optional" />
+      </Field>
+    </FieldGroup>
+  ),
 });

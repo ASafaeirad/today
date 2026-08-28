@@ -1,149 +1,43 @@
+import { useState } from "react";
+
 import preview from "#storybook/preview";
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../Card/Card";
-import { Tabs, TabsTrigger, TabsList, TabsContent } from "./Tab";
+import { Tab, TabList, TabPanel, TabStatus, Tabs } from "./Tab.tsx";
 
 const meta = preview.meta({
   component: Tabs,
+  parameters: { layout: "fullscreen" },
 });
 
-export const Default = meta.story({
-  render: () => {
-    return (
-      <Tabs defaultValue="overview" className="w-[400px]">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Overview</CardTitle>
-              <CardDescription>
-                View your key metrics and recent project activity. Track progress across all your
-                active projects.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              You have 12 active projects and 3 pending tasks.
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="analytics">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics</CardTitle>
-              <CardDescription>
-                Track performance and user engagement metrics. Monitor trends and identify growth
-                opportunities.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Page views are up 25% compared to last month.
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="reports">
-          <Card>
-            <CardHeader>
-              <CardTitle>Reports</CardTitle>
-              <CardDescription>
-                Generate and download your detailed reports. Export data in multiple formats for
-                analysis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              You have 5 reports ready and available to export.
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-              <CardDescription>
-                Manage your account preferences and options. Customize your experience to fit your
-                needs.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Configure notifications, security, and themes.
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    );
-  },
-});
+const DAYS = [
+  { value: "2026-08-28", short: "TODAY", status: "03 OPEN", tone: "inherit" },
+  { value: "2026-08-27", short: "27 THU", status: "READY", tone: "done" },
+  { value: "2026-08-26", short: "26 WED", status: "NO DATA", tone: "inherit" },
+  { value: "2026-08-25", short: "25 TUE", status: "01 OPEN", tone: "inherit" },
+  { value: "2026-08-24", short: "24 MON", status: "SEALED", tone: "seal" },
+  { value: "2026-08-23", short: "23 SUN", status: "SEALED", tone: "seal" },
+] as const;
 
-export const Dimmed = meta.story({
+export const Matrix = meta.story({
   render: () => {
+    const [value, setValue] = useState<string>(DAYS[0].value);
+
     return (
-      <Tabs defaultValue="overview" className="w-[400px]">
-        <TabsList variant="dimmed">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Overview</CardTitle>
-              <CardDescription>
-                View your key metrics and recent project activity. Track progress across all your
-                active projects.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              You have 12 active projects and 3 pending tasks.
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="analytics">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics</CardTitle>
-              <CardDescription>
-                Track performance and user engagement metrics. Monitor trends and identify growth
-                opportunities.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Page views are up 25% compared to last month.
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="reports">
-          <Card>
-            <CardHeader>
-              <CardTitle>Reports</CardTitle>
-              <CardDescription>
-                Generate and download your detailed reports. Export data in multiple formats for
-                analysis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              You have 5 reports ready and available to export.
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-              <CardDescription>
-                Manage your account preferences and options. Customize your experience to fit your
-                needs.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Configure notifications, security, and themes.
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <Tabs value={value} onValueChange={(next) => setValue(next as string)}>
+        <TabList aria-label="Days">
+          {DAYS.map((day) => (
+            <Tab key={day.value} value={day.value} disabled={day.status === "NO DATA"}>
+              <span className="tracking-wide">{day.short}</span>
+              <TabStatus tone={day.tone}>{day.status}</TabStatus>
+            </Tab>
+          ))}
+        </TabList>
+        {DAYS.map((day) => (
+          <TabPanel key={day.value} value={day.value} className="px-2.5 py-4.5">
+            <span className="text-muted-foreground">day </span>
+            {day.value}
+          </TabPanel>
+        ))}
       </Tabs>
     );
   },

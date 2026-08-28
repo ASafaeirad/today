@@ -1,23 +1,71 @@
+import type { VariantProps } from "class-variance-authority";
+
 import { Input as InputPrimitive } from "@base-ui/react/input";
+import { cva } from "class-variance-authority";
 
 import { cn } from "#lib/cn";
 
+const inputVariants = cva(
+  "flex items-center rounded-md border border-input bg-panel text-foreground focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-ring data-invalid:tone-missed data-invalid:tone-border has-data-invalid:tone-missed has-data-invalid:tone-border data-disabled:opacity-50",
+);
+
+const inputControlVariants = cva(
+  "min-w-0 flex-1 bg-transparent outline-none placeholder:text-subtle-foreground disabled:cursor-not-allowed",
+  {
+    variants: {
+      size: {
+        default: "px-2 py-1.25 text-base",
+        lg: "px-2 py-2.25 text-lg",
+      },
+    },
+    defaultVariants: {
+      size: "default",
+    },
+  },
+);
+
+export type InputProps = Omit<InputPrimitive.Props, "size"> &
+  VariantProps<typeof inputControlVariants> & {
+    /** The prompt character printed in front of the field, e.g. `>`. */
+    sigil?: React.ReactNode;
+    invalid?: boolean;
+    wrapperClassName?: string;
+  };
+
 export function Input({
   className,
-  type,
-  error,
+  wrapperClassName,
+  size = "default",
+  sigil,
+  invalid = false,
+  disabled,
   ...props
-}: React.ComponentProps<"input"> & { error?: boolean }) {
+}: InputProps) {
   return (
-    <InputPrimitive
-      type={type}
+    <div
       data-slot="input"
-      data-error={error ? true : undefined}
-      className={cn(
-        "h-11 w-full min-w-0 rounded-lg border border-input bg-transparent px-3.5 py-0 ring-offset-1 text-base shadow-inset transition-colors outline-none file:inline-flex file:h-9 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm",
-        className,
+      data-invalid={invalid || undefined}
+      data-disabled={disabled || undefined}
+      className={cn(inputVariants(), wrapperClassName)}
+    >
+      {sigil != null && (
+        <span
+          data-slot="input-sigil"
+          aria-hidden="true"
+          className="flex items-center self-stretch border-r border-border px-2 text-accent"
+        >
+          {sigil}
+        </span>
       )}
-      {...props}
-    />
+      <InputPrimitive
+        data-slot="input-control"
+        aria-invalid={invalid || undefined}
+        disabled={disabled}
+        className={cn(inputControlVariants({ size }), className)}
+        {...props}
+      />
+    </div>
   );
 }
+
+export { inputControlVariants, inputVariants };

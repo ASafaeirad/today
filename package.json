@@ -10,7 +10,6 @@
     "#lib/cn": "./src/lib/styles/cn.ts",
     "#components/*": "./src/components/*",
     "#ui": "./src/ui/index.ts",
-    "#icons": "./src/ui/Icons/index.ts",
     "#domain/*": "./shared/domain/*"
   },
   "scripts": {

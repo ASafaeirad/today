@@ -1,7 +1,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
 
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Text } from "#ui";
+import { Bar, Button, Heading, Panel, PanelBody, Text } from "#ui";
 
 interface Props {
   redirectTo?: string;
@@ -13,15 +13,21 @@ export function SignInCard({ redirectTo = "/" }: Props) {
   const [pending, setPending] = useState(false);
 
   return (
-    <Card className="mx-auto w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Sign in</CardTitle>
-        <CardDescription>Welcome to Today.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Panel className="mx-auto w-full max-w-sm">
+      <Bar variant="accent" placement="none" className="justify-between">
+        <span className="px-2.5 py-1.25">SIGN IN</span>
+        <span className="px-2.5 py-1.25">VIGIL</span>
+      </Bar>
+      <PanelBody>
+        <Heading as="h1" size="base" prompt>
+          auth --provider github
+        </Heading>
+        <Text tone="muted">A record needs an owner. Open yours.</Text>
         <Button
-          loading={pending}
+          variant="accent"
+          size="lg"
           block
+          loading={pending}
           onClick={() => {
             setError(undefined);
             setPending(true);
@@ -37,11 +43,11 @@ export function SignInCard({ redirectTo = "/" }: Props) {
           Sign in with GitHub
         </Button>
         {error ? (
-          <Text className="mt-2 block text-destructive" size="sm">
-            {error}
+          <Text tone="record" className="tone-missed" size="sm">
+            ! {error}
           </Text>
         ) : null}
-      </CardContent>
-    </Card>
+      </PanelBody>
+    </Panel>
   );
 }

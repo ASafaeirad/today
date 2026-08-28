@@ -1,45 +1,25 @@
 import { StoryMatrix } from "#storybook/matrix";
 import preview from "#storybook/preview";
 
-import { Input } from "./Input";
+import { Input } from "./Input.tsx";
 
-const meta = preview.meta({
-  component: Input,
-});
-
-const stateProps = {
-  Default: { placeholder: "Placeholder..." },
-  "With Value": { defaultValue: "hello@example.com" },
-  Disabled: { placeholder: "Disabled...", disabled: true },
-  Error: { defaultValue: "invalid@", error: true },
-  "Read Only": { defaultValue: "Readonly value", readOnly: true },
-};
-
-const types = ["text", "email", "password", "number", "search"] as const;
+const meta = preview.meta({ component: Input });
 
 export const Matrix = meta.story({
   render: () => (
     <StoryMatrix
-      columns={[{ label: "Input" }]}
-      rows={Object.keys(stateProps)}
-      cell={({ row }) => (
-        <div className="w-48">
-          <Input {...stateProps[row as keyof typeof stateProps]} />
-        </div>
-      )}
-    />
-  ),
-});
-
-export const Types = meta.story({
-  render: () => (
-    <StoryMatrix
-      columns={[{ label: "Input" }]}
-      rows={types.map((t) => t)}
-      cell={({ row }) => (
-        <div className="w-48">
-          <Input type={row as (typeof types)[number]} placeholder={`${row}...`} />
-        </div>
+      columns={[{ label: "Plain" }, { label: "With sigil" }]}
+      rows={["Default", "Large", "Filled", "Invalid", "Disabled"]}
+      cell={({ row, col }) => (
+        <Input
+          className="w-56"
+          sigil={col === "With sigil" ? ">" : undefined}
+          size={row === "Large" ? "lg" : "default"}
+          defaultValue={row === "Filled" ? "Ran late, still got the walk in." : undefined}
+          invalid={row === "Invalid"}
+          disabled={row === "Disabled"}
+          placeholder="closing note"
+        />
       )}
     />
   ),

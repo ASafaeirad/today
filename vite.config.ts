@@ -32,7 +32,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
   },
-  // @ts-expect-error
   lint: defineOxlintConfig({
     ignorePatterns: ["convex/_generated/**", "src/routeTree.gen.ts"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],

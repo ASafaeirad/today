@@ -14,8 +14,8 @@
   color-scheme: dark;
 
   /* ── Base hues ─────────────────────────────────────────────── */
-  --surface: hsl(120 9% 4%);
-  --ink: hsl(109 45% 84%);
+  --surface: hsl(150, 5%, 16%);
+  --ink: hsl(111, 42%, 94%);
   --done: hsl(127 69% 58%);
   --missed: hsl(9 100% 62%);
   --skipped: hsl(221 100% 75%);

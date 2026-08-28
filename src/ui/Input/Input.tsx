@@ -6,7 +6,7 @@ import { cva } from "class-variance-authority";
 import { cn } from "#lib/cn";
 
 const inputVariants = cva(
-  "flex items-center rounded-md border border-input bg-panel text-foreground focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-ring data-invalid:tone-missed data-invalid:tone-border has-data-invalid:tone-missed has-data-invalid:tone-border data-disabled:opacity-50",
+  "flex items-center rounded-md border border-input bg-panel text-foreground focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-ring data-invalid:tone-missed data-invalid:tone-border has-data-invalid:tone-missed has-data-invalid:tone-border data-disabled:cursor-not-allowed data-disabled:bg-chrome data-disabled:opacity-50 has-data-disabled:cursor-not-allowed has-data-disabled:bg-chrome has-data-disabled:opacity-50",
 );
 
 const inputControlVariants = cva(

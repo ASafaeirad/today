@@ -38,7 +38,7 @@ export function FieldDescription({ className, ...props }: FieldPrimitive.Descrip
   return (
     <FieldPrimitive.Description
       data-slot="field-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-sm text-muted-foreground data-disabled:opacity-50", className)}
       {...props}
     />
   );
@@ -48,7 +48,7 @@ export function FieldError({ className, ...props }: FieldPrimitive.Error.Props) 
   return (
     <FieldPrimitive.Error
       data-slot="field-error"
-      className={cn("tone-missed tone-fg text-sm", className)}
+      className={cn("tone-missed tone-fg text-sm data-disabled:opacity-50", className)}
       {...props}
     />
   );

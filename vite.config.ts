@@ -10,7 +10,7 @@ export default defineConfig({
   },
   plugins: [tanstackRouter(), react(), tailwindcss()],
   staged: {
-    "*": "vp check --fix",
+    "*": ["vp check --fix", "cspell"],
   },
   fmt: {
     ignorePatterns: ["convex/_generated/**", "src/routeTree.gen.ts"],

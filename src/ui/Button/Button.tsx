@@ -18,7 +18,7 @@ const buttonVariants = cva(
         /* The irreversible one — sealing a record. */
         accent:
           "bg-accent font-bold tracking-brand text-accent-foreground hover:brightness-115 active:brightness-75 disabled:bg-border disabled:text-subtle-foreground disabled:opacity-100",
-        /* Chrome affordances: legible only once you go looking for them. */
+        /* Chrome affordance: legible only once you go looking for them. */
         ghost:
           "text-muted-foreground hover:bg-panel hover:text-foreground active:bg-inverted active:text-inverted-foreground",
       },

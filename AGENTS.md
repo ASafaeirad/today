@@ -1,7 +1,7 @@
 <!-- DEVELOPMENT GUID START -->
 
+- Read `CONTEXT.md` before working on this codebase. It fixes the domain language.
 - To have a consistent typography please use Text component from '#ui' package.
-- For test use `.spec.` convention.
 - Use `react-hook-form` for form management.
 - Use `valibot` for client side schema validation.
 - In reusable components that render form controls, derive element `id`/`htmlFor` from React's `useId()`.

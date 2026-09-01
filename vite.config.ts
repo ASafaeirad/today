@@ -35,7 +35,10 @@ export default defineConfig({
   lint: defineOxlintConfig({
     ignorePatterns: ["convex/_generated/**", "src/routeTree.gen.ts"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
-    rules: { "vite-plus/prefer-vite-plus-imports": "error" },
+    rules: {
+      "react/only-export-components": "off",
+      "vite-plus/prefer-vite-plus-imports": "error",
+    },
     overrides: [
       {
         // A Convex mutation is one transaction and its writes are ordered.
@@ -47,6 +50,13 @@ export default defineConfig({
         files: ["**/*.spec.ts", "**/*.spec.tsx"],
         rules: {
           "max-lines-per-function": "off",
+        },
+      },
+      {
+        files: ["**/*.stories.tsx", ".storybook/*.tsx"],
+        rules: {
+          "react-hooks/rules-of-hooks": "off",
+          "react/only-export-components": "off",
         },
       },
     ],

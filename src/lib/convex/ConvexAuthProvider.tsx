@@ -2,7 +2,7 @@ import { ConvexAuthProvider as ConvexAuthProviderBase } from "@convex-dev/auth/r
 
 import { createConvexClient } from "./convex-client";
 
-export const convex = createConvexClient();
+const convex = createConvexClient();
 
 export function ConvexAuthProvider({ children }: { children: React.ReactNode }) {
   return <ConvexAuthProviderBase client={convex}>{children}</ConvexAuthProviderBase>;

@@ -1,6 +1,4 @@
-import type { VariantProps } from "class-variance-authority";
-
-import { cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "#lib/cn";
 
@@ -17,15 +15,14 @@ const buttonGroupVariants = cva("flex items-stretch", {
   },
 });
 
-export type ButtonGroupProps = React.ComponentProps<"div"> &
+export type ButtonGroupProps = React.ComponentProps<"fieldset"> &
   VariantProps<typeof buttonGroupVariants>;
 
 export function ButtonGroup({ className, attached = true, ...props }: ButtonGroupProps) {
   return (
-    <div
-      role="group"
+    <fieldset
       data-slot="button-group"
-      className={cn(buttonGroupVariants({ attached }), className)}
+      className={cn("m-0 min-w-0 border-0 p-0", buttonGroupVariants({ attached }), className)}
       {...props}
     />
   );

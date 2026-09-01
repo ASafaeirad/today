@@ -1,3 +1,4 @@
+// oxlint-disable react/no-array-index-key
 import type React from "react";
 
 import { cn } from "#lib/cn";
@@ -38,28 +39,38 @@ export function StoryMatrix({ columns, rows, cell, className }: StoryMatrixProps
       <table className="border-collapse">
         <thead>
           <tr>
-            <th className="border border-border" />
-            {columns.map((col) => (
-              <th
-                key={col.label}
-                colSpan={col.subColumns?.length ?? 1}
-                className="border border-border px-6 py-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground"
-              >
-                {col.label}
-              </th>
-            ))}
+            <th scope="col" rowSpan={withSubs ? 2 : undefined} className="border border-border">
+              <span className="sr-only">Variant</span>
+            </th>
+            {columns.map((col) => {
+              const subColumnCount = col.subColumns?.length ?? 0;
+
+              return (
+                <th
+                  key={col.label}
+                  scope={subColumnCount > 0 ? "colgroup" : "col"}
+                  colSpan={subColumnCount || undefined}
+                  rowSpan={withSubs && subColumnCount === 0 ? 2 : undefined}
+                  className="border border-border px-6 py-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground"
+                >
+                  {col.label}
+                </th>
+              );
+            })}
           </tr>
           {withSubs && (
             <tr>
-              <th className="border border-border" />
-              {flat.map(({ col, subCol }, i) => (
-                <th
-                  key={`${col}-${subCol}-${i}`}
-                  className="border border-border px-6 py-2 text-center text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70"
-                >
-                  {subCol !== col ? subCol : ""}
-                </th>
-              ))}
+              {columns.flatMap((col) =>
+                col.subColumns?.map((subCol, index) => (
+                  <th
+                    key={`${col.label}-${subCol}-${index}`}
+                    scope="col"
+                    className="border border-border px-6 py-2 text-center text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70"
+                  >
+                    {subCol}
+                  </th>
+                )),
+              )}
             </tr>
           )}
         </thead>

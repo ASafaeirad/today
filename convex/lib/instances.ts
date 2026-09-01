@@ -1,4 +1,5 @@
 import type { LocalDate } from "#domain/date";
+
 import { resolveOutcome, type Resolution } from "#domain/outcome";
 
 import type { Doc, Id } from "../_generated/dataModel";

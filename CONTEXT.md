@@ -82,7 +82,7 @@ distinguishes it from a miss.
 _Avoid_: Excused, deferred, passed, escaped
 
 **Awaiting Review**:
-The state of a *day* whose date has passed but which has not been closed. Days stay here forever if
+The state of a _day_ whose date has passed but which has not been closed. Days stay here forever if
 the user never returns; nothing closes them in the background. Instances are never awaiting review; an instance has an outcome or it has none yet.
 _Avoid_: Pending, stale, overdue, unreviewed
 

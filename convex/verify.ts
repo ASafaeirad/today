@@ -5,13 +5,9 @@ import { dayDigest, foldDay } from "#domain/dayStats";
 import { rosterFor } from "#domain/schedule";
 
 import type { Doc, Id } from "./_generated/dataModel";
+
 import { api, internal } from "./_generated/api";
-import {
-  action,
-  internalMutation,
-  internalQuery,
-  type QueryCtx,
-} from "./_generated/server";
+import { action, internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
 import { findDay } from "./lib/days";
 import { ownedQuery } from "./lib/functions";
 import { instancesOn, resolveCell } from "./lib/instances";

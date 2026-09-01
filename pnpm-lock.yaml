@@ -23,6 +23,9 @@ importers:
       '@base-ui/react':
         specifier: 1.7.0
         version: 1.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@convex-dev/aggregate':
+        specifier: 0.3.0
+        version: 0.3.0(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
       '@convex-dev/auth':
         specifier: 0.0.94
         version: 0.0.94(@auth/core@0.41.3)(convex@1.43.0(react@19.2.8))(react@19.2.8)
@@ -41,6 +44,9 @@ importers:
       clsx:
         specifier: 2.1.1
         version: 2.1.1
+      convex-helpers:
+        specifier: 0.1.123
+        version: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
       lucide-react:
         specifier: 1.29.0
         version: 1.29.0(react@19.2.8)
@@ -63,6 +69,9 @@ importers:
         specifier: 1.4.2
         version: 1.4.2(typescript@7.0.2)
     devDependencies:
+      '@convex-dev/batch-worker':
+        specifier: 0.3.2
+        version: 0.3.2(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
       '@fontsource-variable/geist':
         specifier: 5.3.0
         version: 5.3.0
@@ -268,6 +277,11 @@ packages:
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
 
+  '@convex-dev/aggregate@0.3.0':
+    resolution: {integrity: sha512-WXLOOkcQ3nUjfXZy3/yYrBcVJz2yFA0rYrcyizbqrp2nC7NdRKDaP24+pm3fyh7JwkaCRo+nJTBTsjE89vyLZQ==}
+    peerDependencies:
+      convex: ^1.43.0
+
   '@convex-dev/auth@0.0.94':
     resolution: {integrity: sha512-A/ily6mXQFhSOUAYoiVZdzAZj3RBhiU4d2MOqpEByL7Uzzub6Y+MYQCzSTi0hQzE1dv7dVHprFku0lQuiq6A5w==}
     hasBin: true
@@ -278,6 +292,18 @@ packages:
     peerDependenciesMeta:
       react:
         optional: true
+
+  '@convex-dev/batch-worker@0.3.0':
+    resolution: {integrity: sha512-9CNwrhooFw59vRFEBiibD2/S0VEe6BiPDyJPlvybVkxEzeCKHjGwzaHtez6FuD6wIJ+GglWGqvlu4fOAEh9+pg==}
+    peerDependencies:
+      convex: ^1.43.0
+      react: ^18.3.1 || ^19.0.0
+
+  '@convex-dev/batch-worker@0.3.2':
+    resolution: {integrity: sha512-mvruYwRV6oJJFgN1x2JaHeuN9CyjpA1FAk0iOTta4kvN6GWHSUDOxGMjFQ2L20edCgPXilqMVB6Ua5enjXqHlA==}
+    peerDependencies:
+      convex: ^1.43.0
+      react: ^18.3.1 || ^19.0.0
 
   '@cspell/cspell-bundled-dicts@10.1.1':
     resolution: {integrity: sha512-EvPFPWwEPbPn2pIAD4D6PRRFbuM5OCiYfY0GhmpQyWWteCwR4gRmRs06UOWqfSRKHYBL/rUqcr3OAfiF5ctAjw==}
@@ -2571,6 +2597,50 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
+  convex-helpers@0.1.122:
+    resolution: {integrity: sha512-G5b54+RUPyitwEou7VPBxnz5/Tgy8gjtyN0zPgagOjguyBqoh9IjlsVQtWOKY7pxo/IREjF+N1khZmyEuzqbiw==}
+    hasBin: true
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      convex: ^1.43.0
+      hono: ^4.0.5
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5 || ^6.0.0 || ^7.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@standard-schema/spec':
+        optional: true
+      hono:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
+
+  convex-helpers@0.1.123:
+    resolution: {integrity: sha512-E9W4tscZy6ZtNnwPDdL5UhMc7Rj9aUYlzjdYiKsfVIAwdarABWqvPB8+St3Q6IwS83r+QIGSO1lTidTamDdyPQ==}
+    hasBin: true
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      convex: ^1.43.0
+      hono: ^4.0.5
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5 || ^6.0.0 || ^7.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@standard-schema/spec':
+        optional: true
+      hono:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
+
   convex-test@0.0.55:
     resolution: {integrity: sha512-ablJ6vR3WUpyTaYrrRQf8yxInGrhHyqBEQsCFzloda3G0MDEu2RMKNGUkvlBXYWPiiEP0UIKPS7gZuLbqGnvQw==}
     peerDependencies:
@@ -4135,6 +4205,18 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
+  '@convex-dev/aggregate@0.3.0(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)':
+    dependencies:
+      '@convex-dev/batch-worker': 0.3.0(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
+      convex: 1.43.0(react@19.2.8)
+      convex-helpers: 0.1.122(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - react
+      - typescript
+      - zod
+
   '@convex-dev/auth@0.0.94(@auth/core@0.41.3)(convex@1.43.0(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@auth/core': 0.41.3
@@ -4151,6 +4233,28 @@ snapshots:
       server-only: 0.0.1
     optionalDependencies:
       react: 19.2.8
+
+  '@convex-dev/batch-worker@0.3.0(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)':
+    dependencies:
+      convex: 1.43.0(react@19.2.8)
+      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
+      react: 19.2.8
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - typescript
+      - zod
+
+  '@convex-dev/batch-worker@0.3.2(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)':
+    dependencies:
+      convex: 1.43.0(react@19.2.8)
+      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3)
+      react: 19.2.8
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - typescript
+      - zod
 
   '@cspell/cspell-bundled-dicts@10.1.1':
     dependencies:
@@ -5789,6 +5893,24 @@ snapshots:
   confbox@0.2.4: {}
 
   convert-source-map@2.0.0: {}
+
+  convex-helpers@0.1.122(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3):
+    dependencies:
+      convex: 1.43.0(react@19.2.8)
+    optionalDependencies:
+      '@standard-schema/spec': 1.1.0
+      react: 19.2.8
+      typescript: 7.0.2
+      zod: 4.4.3
+
+  convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.8))(react@19.2.8)(typescript@7.0.2)(zod@4.4.3):
+    dependencies:
+      convex: 1.43.0(react@19.2.8)
+    optionalDependencies:
+      '@standard-schema/spec': 1.1.0
+      react: 19.2.8
+      typescript: 7.0.2
+      zod: 4.4.3
 
   convex-test@0.0.55(convex@1.43.0(react@19.2.8)):
     dependencies:

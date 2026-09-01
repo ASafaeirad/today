@@ -36,6 +36,20 @@ export default defineConfig({
     ignorePatterns: ["convex/_generated/**", "src/routeTree.gen.ts"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },
+    overrides: [
+      {
+        // A Convex mutation is one transaction and its writes are ordered.
+        // Promise.all would drop that order, so awaiting in a loop is the correct shape here.
+        files: ["convex/**/*.ts"],
+        rules: { "no-await-in-loop": "off" },
+      },
+      {
+        files: ["**/*.spec.ts", "**/*.spec.tsx"],
+        rules: {
+          "max-lines-per-function": "off",
+        },
+      },
+    ],
     options: { typeAware: true, typeCheck: true, esm: false },
   }),
 });

@@ -71,3 +71,25 @@ export function computeBalance(input: {
     available: Math.max(0, balance - input.holds),
   };
 }
+
+/**
+ * Whether a date is one of the dates the Balance is computed over. A skip on a
+ * date outside the horizon cannot be charged: no row outside the window is
+ * summed into `spent`, so the spend would evaporate while the rate exclusion it
+ * bought stayed forever. ADR-0003 says days outside the horizon no longer shape
+ * the Balance; this is the other half of that sentence.
+ */
+export function withinHorizon(today: LocalDate, date: LocalDate): boolean {
+  const { from, to } = horizonRange(today);
+  return date >= from && date <= to;
+}
+
+/**
+ * A skip is bought, not merely declared. ADR-0001 excludes skipped Instances
+ * from the completion denominator precisely because each one costs a banked
+ * skip and the horizon bounds the bank; an unpaid skip would be a free exclusion
+ * from the rate, which is the failure that ADR argues cannot be sustained.
+ */
+export function canAfford(breakdown: BalanceBreakdown, skips: number): boolean {
+  return skips <= breakdown.available;
+}

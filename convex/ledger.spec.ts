@@ -5,17 +5,24 @@ import { addDays, datesBetween } from "#domain/date";
 import { EVERY_DAY, maskFromDays } from "#domain/schedule";
 
 import { api } from "./_generated/api";
-import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
+import { atDate, bankSkips, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
 
 const WEEKDAYS = maskFromDays([1, 2, 3, 4, 5]);
 const SUNDAYS = maskFromDays([0]);
 
 /** 2026-03-01 is a Sunday. */
-async function ledger(today: string) {
+async function ledger(today: string, bank = 0) {
   const t = initConvexTest();
   atDate(today);
   const as = await signIn(t);
-  await as.mutation(api.owners.ensure, { timezone: "UTC" });
+  if (bank === 0) {
+    await as.mutation(api.owners.ensure, { timezone: "UTC" });
+    return { t, as };
+  }
+  // A skip is bought, so a fixture that spends one mints it first, on dates of
+  // its own that end before this ledger starts.
+  await bankSkips(as, { count: bank, before: today });
+  atDate(today);
   return { t, as };
 }
 
@@ -186,7 +193,7 @@ describe("the day-of-week mask", () => {
 
 describe("marks and close", () => {
   test("the latest mark wins and the instance cites it", async () => {
-    const { as } = await ledger("2026-03-02");
+    const { as } = await ledger("2026-03-02", 1);
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
       dowMask: EVERY_DAY,

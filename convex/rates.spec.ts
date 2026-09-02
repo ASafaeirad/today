@@ -5,15 +5,22 @@ import { datesBetween } from "#domain/date";
 import { EVERY_DAY, maskFromDays } from "#domain/schedule";
 
 import { api } from "./_generated/api";
-import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
+import { atDate, bankSkips, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
 
 type Ledger = Awaited<ReturnType<typeof ledger>>;
 
-async function ledger(today: string) {
+async function ledger(today: string, bank = 0) {
   const t = initConvexTest();
   atDate(today);
   const as = await signIn(t);
-  await as.mutation(api.owners.ensure, { timezone: "UTC" });
+  if (bank === 0) {
+    await as.mutation(api.owners.ensure, { timezone: "UTC" });
+    return { t, as };
+  }
+  // A skip is bought, so a fixture that spends one mints it first, on dates of
+  // its own that end before this ledger starts.
+  await bankSkips(as, { count: bank, before: today });
+  atDate(today);
   return { t, as };
 }
 
@@ -29,7 +36,7 @@ afterEach(() => {
 
 describe("rates", () => {
   test("counts done over done plus missed, with skipped on neither side", async () => {
-    const l = await ledger("2026-03-01");
+    const l = await ledger("2026-03-01", 1);
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -277,7 +284,7 @@ describe("the receipt", () => {
   });
 
   test("a rate drills down to the days underneath it", async () => {
-    const l = await ledger("2026-03-01");
+    const l = await ledger("2026-03-01", 2);
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",

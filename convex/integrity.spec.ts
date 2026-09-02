@@ -209,6 +209,134 @@ describe("the balance", () => {
   });
 });
 
+describe("buying a skip", () => {
+  /** Five all-done days, then two open days left to spend the skip on. */
+  async function banked(l: Ledger) {
+    const { as } = l;
+    const { routineId } = await as.mutation(api.routines.create, {
+      name: "Run",
+      dowMask: EVERY_DAY,
+    });
+
+    atDate("2026-03-10");
+    await sweepToToday(as);
+    await markEach(l, { routineId, from: "2026-03-01", to: "2026-03-05", outcome: "done" });
+    await closeEach(l, "2026-03-01", "2026-03-08");
+
+    return routineId;
+  }
+
+  test("refuses a skip nothing paid for, and leaves no trace of it", async () => {
+    const l = await ledger("2026-03-01");
+    const { as } = l;
+    const { routineId } = await as.mutation(api.routines.create, {
+      name: "Run",
+      dowMask: EVERY_DAY,
+    });
+
+    atDate("2026-03-10");
+    await sweepToToday(as);
+    await closeEach(l, "2026-03-01", "2026-03-09");
+    expect((await as.query(api.balance.current, {})).available).toBe(0);
+
+    await expect(
+      as.mutation(api.marks.append, { date: "2026-03-10", routineId, outcome: "skipped" }),
+    ).rejects.toThrow(/Cannot mark skipped: 1 skip needed, 0 available/u);
+
+    // The purchase is refused before the Mark is written, so the audit log has
+    // nothing in it and the cell is exactly as it was.
+    expect(await as.query(api.marks.forCell, { date: "2026-03-10", routineId })).toEqual([]);
+    const day = await as.query(api.days.get, { date: "2026-03-10" });
+    expect(day.roster[0]).toMatchObject({ outcome: "missed", marked: false });
+  });
+
+  test("a hold exhausts the balance, and releasing it lets the skip move", async () => {
+    const l = await ledger("2026-03-01");
+    const { as } = l;
+    const routineId = await banked(l);
+
+    await as.mutation(api.marks.append, { date: "2026-03-09", routineId, outcome: "skipped" });
+
+    // The one banked skip is held on the ninth, so the tenth cannot have it.
+    await expect(
+      as.mutation(api.marks.append, { date: "2026-03-10", routineId, outcome: "skipped" }),
+    ).rejects.toThrow(/1 skip needed, 0 available .*1 held/u);
+
+    await as.mutation(api.marks.append, { date: "2026-03-09", routineId, outcome: null });
+    await as.mutation(api.marks.append, { date: "2026-03-10", routineId, outcome: "skipped" });
+
+    const day = await as.query(api.days.get, { date: "2026-03-10" });
+    expect(day.roster[0]!.outcome).toBe("skipped");
+  });
+
+  test("re-marking a cell that is already skipped costs nothing", async () => {
+    const l = await ledger("2026-03-01");
+    const { as } = l;
+    const routineId = await banked(l);
+
+    await as.mutation(api.marks.append, { date: "2026-03-09", routineId, outcome: "skipped" });
+    await as.mutation(api.marks.append, { date: "2026-03-09", routineId, outcome: "skipped" });
+    await as.mutation(api.days.close, { date: "2026-03-09" });
+    expect((await as.query(api.balance.current, {})).available).toBe(0);
+
+    // The spend is already standing against this cell; amending it to what it
+    // already says is not a second purchase.
+    await as.mutation(api.marks.append, { date: "2026-03-09", routineId, outcome: "skipped" });
+    const day = await as.query(api.days.get, { date: "2026-03-09" });
+    expect(day.roster[0]!.outcome).toBe("skipped");
+    expect((await as.query(api.balance.current, {})).spent).toBe(1);
+  });
+
+  test("refuses a skip on a date the horizon cannot charge", async () => {
+    const l = await ledger("2026-01-15");
+    const { as } = l;
+    const { routineId } = await as.mutation(api.routines.create, {
+      name: "Run",
+      dowMask: EVERY_DAY,
+    });
+
+    atDate("2026-03-10");
+    await sweepToToday(as);
+    await markEach(l, { routineId, from: "2026-03-01", to: "2026-03-05", outcome: "done" });
+    await closeEach(l, "2026-03-01", "2026-03-09");
+    expect((await as.query(api.balance.current, {})).available).toBe(1);
+
+    // The skip is affordable; January is not chargeable. A spend there would
+    // never be summed by the horizon, so it would cost nothing and still buy a
+    // permanent exclusion from the rate.
+    await expect(
+      as.mutation(api.marks.append, { date: "2026-01-20", routineId, outcome: "skipped" }),
+    ).rejects.toThrow(/2026-01-20 is outside the 30-day Balance horizon/u);
+  });
+
+  test("refuses to close a held skip whose all-done days have aged out", async () => {
+    const l = await ledger("2026-03-01");
+    const { as } = l;
+    const routineId = await banked(l);
+    await as.mutation(api.marks.append, { date: "2026-03-09", routineId, outcome: "skipped" });
+
+    // Far enough on that the five all-done days have left the horizon while the
+    // held day itself has not: the hold is still there, the funding is not.
+    atDate("2026-04-05");
+    await sweepToToday(as);
+    expect((await as.query(api.balance.current, {})).minted).toBe(0);
+
+    await expect(as.mutation(api.days.close, { date: "2026-03-09" })).rejects.toThrow(
+      /Cannot close 2026-03-09: 1 skip needed, 0 available/u,
+    );
+
+    // Refused whole: nothing on the day was settled on the way to the throw.
+    const open = await as.query(api.days.get, { date: "2026-03-09" });
+    expect(open.state).toBe("awaitingReview");
+    expect(open.roster.every((entry) => !entry.settled)).toBe(true);
+
+    // The owner clears it by paying with the outcome instead.
+    await as.mutation(api.marks.append, { date: "2026-03-09", routineId, outcome: "missed" });
+    await as.mutation(api.days.close, { date: "2026-03-09" });
+    expect((await as.query(api.days.get, { date: "2026-03-09" })).state).toBe("closed");
+  });
+});
+
 describe("the retirement counter", () => {
   test("counts consecutive scheduled misses and offers retirement at close", async () => {
     const l = await ledger("2026-03-01");

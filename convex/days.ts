@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { MAX_EAGER_FOLDS } from "#domain/constants";
 import { shouldSuggestRetirement } from "#domain/retirement";
 
+import { requireSkips } from "./lib/balance";
 import { bumpRev, ensureDay, findDay } from "./lib/days";
 import { ownedMutation, ownedQuery } from "./lib/functions";
 import { applyResolution, instancesOn, resolveCell } from "./lib/instances";
@@ -59,6 +60,13 @@ export const get = ownedQuery({
  *
  * The repair is eager and atomic: the projection is rewritten inside this same
  * mutation, so the write returns only when its numbers are current.
+ *
+ * The skips on the roster are charged here, not merely reserved. `marks.append`
+ * bought each one when it was marked, but the Balance is a rolling window: the
+ * all-done days that funded a hold can age out of it, and so can the held day
+ * itself, which would settle a spend the horizon never sums. Either way the
+ * close is refused rather than granting a rate exclusion nothing paid for, and
+ * the owner clears it by re-marking a skip as done or missed.
  */
 export const close = ownedMutation({
   args: { date: v.string(), closeKey: v.optional(v.string()) },
@@ -86,16 +94,38 @@ export const close = ownedMutation({
     const rev = await bumpRev(ctx, day);
     const closedAt = Date.now();
 
+    // Resolve the whole roster before sealing any of it: the skips it turns out
+    // to contain have to be paid for as one purchase, and a close that cannot
+    // afford them must not have settled half the day first.
+    const resolutions = [];
     for (const instance of instances) {
-      const resolution = await resolveCell(
-        ctx,
-        {
-          ownerId: instance.ownerId,
-          date: instance.date,
-          routineId: instance.routineId,
-        },
-        rev,
-      );
+      resolutions.push({
+        instance,
+        resolution: await resolveCell(
+          ctx,
+          {
+            ownerId: instance.ownerId,
+            date: instance.date,
+            routineId: instance.routineId,
+          },
+          rev,
+        ),
+      });
+    }
+
+    const skips = resolutions.filter(({ resolution }) => resolution.outcome === "skipped").length;
+    if (skips > 0) {
+      await requireSkips(ctx, ctx.owner._id, ctx.today, {
+        date: args.date,
+        skips,
+        // This day's own holds are what the close is spending, not competition
+        // for it. Everything held on other open days still stands in the way.
+        ignoreHold: (held) => held.date === args.date,
+        subject: `Cannot close ${args.date}`,
+      });
+    }
+
+    for (const { instance, resolution } of resolutions) {
       await applyResolution(ctx, instance, resolution, { seal: closedAt });
     }
 

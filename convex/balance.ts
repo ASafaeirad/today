@@ -1,9 +1,8 @@
-import { computeBalance, horizonRange } from "#domain/balance";
+import { isAllDone } from "#domain/balance";
 import { DAYS_PER_SKIP, HORIZON_DAYS } from "#domain/constants";
 
+import { readBalance } from "./lib/balance";
 import { ownedQuery } from "./lib/functions";
-import { instancesBetween } from "./lib/instances";
-import { dayStatsBetween } from "./lib/projections";
 
 /**
  * A count over the last 30 local dates and nothing else, so it costs the same
@@ -13,29 +12,15 @@ import { dayStatsBetween } from "./lib/projections";
  * Holds are read from the Instances of the open dates inside the horizon, not
  * from `dayStats`: marking skipped on a still-open day reserves the skip and
  * shows it as unavailable, and un-marking releases it at no cost.
+ *
+ * `available` is not decoration. It is the number `marks.append` and
+ * `days.close` charge against, computed by the same reader they call, so the
+ * figure quoted here is the figure a skip is actually bought at.
  */
 export const current = ownedQuery({
   args: {},
   handler: async (ctx) => {
-    const { from, to } = horizonRange(ctx.today);
-
-    const rows = await dayStatsBetween(ctx, ctx.owner._id, from, to);
-    const instances = await instancesBetween(ctx, ctx.owner._id, from, to);
-    const holds = instances.filter(
-      (instance) => instance.closedAt === null && instance.outcome === "skipped",
-    ).length;
-
-    const breakdown = computeBalance({
-      today: ctx.today,
-      rows: rows.map((row) => ({
-        date: row.date,
-        scheduled: row.scheduled,
-        done: row.done,
-        skipped: row.skipped,
-        closed: row.closed,
-      })),
-      holds,
-    });
+    const { breakdown, rows } = await readBalance(ctx, ctx.owner._id, ctx.today);
 
     return {
       ...breakdown,
@@ -51,7 +36,7 @@ export const current = ownedQuery({
         scheduled: row.scheduled,
         done: row.done,
         skipped: row.skipped,
-        allDone: row.closed && row.scheduled > 0 && row.done === row.scheduled,
+        allDone: isAllDone(row),
       })),
     };
   },

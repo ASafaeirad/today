@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { requireUserId } from "./lib/auth";
+import { requireSkips } from "./lib/balance";
 import { bumpRev, findDay } from "./lib/days";
 import { ownedMutation, ownedQuery } from "./lib/functions";
 import { applyResolution, findInstance, resolveCell } from "./lib/instances";
@@ -19,10 +20,16 @@ import { markOutcomeValidator } from "./schema";
  * mark on an open day writes no projection row at all, because only settled
  * Instances count; a mark on a closed day rewrites that one row eagerly.
  *
- * Marking skipped is not refused when the Balance is empty. The Balance is
- * floored at zero rather than guarded at write time, and a backlog day spends
- * the balance as it stands now; the breakdown comes back with the write so the
- * caller can say what the skip cost before it was spent.
+ * Marking skipped is a purchase and is refused when the Balance cannot cover
+ * it. A skipped Instance leaves the completion denominator permanently
+ * (ADR-0001), and that exclusion is exactly what a banked skip buys, so an
+ * unpaid one would be a free exclusion and the bound ADR-0001 relies on would
+ * not exist. The Balance is charged as it stands now; the breakdown comes back
+ * with the write so the caller can say what the skip was charged against.
+ *
+ * Re-marking a cell that already resolves to skipped costs nothing: the charge
+ * is already standing against it, as a hold while the day is open and as a
+ * spend once it is closed.
  */
 export const append = ownedMutation({
   args: {
@@ -44,6 +51,16 @@ export const append = ownedMutation({
 
     const day = await findDay(ctx, ctx.owner._id, args.date);
     if (!day) throw new Error(`No day row for ${args.date}`);
+
+    // Buy the skip before writing the Mark, so a refusal leaves no trace.
+    const charged = args.outcome === "skipped" && instance.outcome !== "skipped";
+    const balance = charged
+      ? await requireSkips(ctx, ctx.owner._id, ctx.today, {
+          date: args.date,
+          skips: 1,
+          subject: "Cannot mark skipped",
+        })
+      : null;
 
     const markId = await ctx.db.insert("marks", {
       ...cell,
@@ -67,6 +84,12 @@ export const append = ownedMutation({
       resolvedFromMarkId: updated.resolvedFromMarkId,
       outcomeRev: updated.outcomeRev,
       settled: updated.closedAt !== null,
+      /**
+       * The Balance this skip was charged against, or `null` when the mark cost
+       * nothing. It is the reading from just before the charge, which is what
+       * says why the write was allowed; the current number is `balance.current`.
+       */
+      balance,
     };
   },
 });

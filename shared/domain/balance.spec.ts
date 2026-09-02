@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { computeBalance, horizonRange, type HorizonRow } from "./balance";
+import { canAfford, computeBalance, horizonRange, withinHorizon, type HorizonRow } from "./balance";
 import { DAYS_PER_SKIP, HORIZON_DAYS } from "./constants";
 import { addDays } from "./date";
 
@@ -82,6 +82,24 @@ describe("the balance", () => {
       ...Array.from({ length: 20 }, (_, index) => allDone(addDays(TODAY, -(HORIZON_DAYS + index)))),
     ];
     expect(computeBalance({ today: TODAY, rows: insideAndOutside, holds: 0 }).minted).toBe(1);
+  });
+
+  it("sells only what is available, holds included", () => {
+    const balance = computeBalance({
+      today: TODAY,
+      rows: daysBack(DAYS_PER_SKIP * 2, allDone),
+      holds: 1,
+    });
+    expect(canAfford(balance, 1)).toBe(true);
+    expect(canAfford(balance, 2)).toBe(false);
+    expect(canAfford(balance, 0)).toBe(true);
+  });
+
+  it("charges only dates it can account for", () => {
+    expect(withinHorizon(TODAY, TODAY)).toBe(true);
+    expect(withinHorizon(TODAY, addDays(TODAY, -(HORIZON_DAYS - 1)))).toBe(true);
+    expect(withinHorizon(TODAY, addDays(TODAY, -HORIZON_DAYS))).toBe(false);
+    expect(withinHorizon(TODAY, addDays(TODAY, 1))).toBe(false);
   });
 
   it("falls on a day the owner does nothing, when an all-done day ages out", () => {

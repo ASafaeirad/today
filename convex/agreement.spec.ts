@@ -18,7 +18,34 @@ function generator(seed: number) {
   };
 }
 
-const MARKS = ["done", "skipped", "missed", null] as const;
+/**
+ * Weighted towards done, because the ledger is: a skip is minted by five
+ * all-done days inside the horizon, so an owner who is done a quarter of the
+ * time can never buy one and a uniform draw would fuzz a ledger with no skipped
+ * Instances in it at all. All four values still appear.
+ */
+const MARKS = ["done", "done", "done", "done", "done", "skipped", "missed", null] as const;
+
+/**
+ * A skip the Balance cannot cover is refused, which is an answer and not a
+ * failure: the owner picks something else, and the fuzz picks missed. Only that
+ * one refusal is absorbed; anything else the ledger throws is a bug and rises.
+ * Returns whether the skip was actually bought, so the fuzz can show it still
+ * covers skipped cells rather than quietly degenerating into done and missed.
+ */
+async function markOrFallBack(
+  as: Awaited<ReturnType<typeof signIn>>,
+  args: { date: string; routineId: Id<"routines">; outcome: (typeof MARKS)[number] },
+): Promise<boolean> {
+  try {
+    await as.mutation(api.marks.append, args);
+    return args.outcome === "skipped";
+  } catch (error) {
+    if (args.outcome !== "skipped" || !String(error).includes("Cannot mark skipped")) throw error;
+    await as.mutation(api.marks.append, { ...args, outcome: "missed" });
+    return false;
+  }
+}
 
 afterEach(() => {
   realTime();
@@ -44,22 +71,29 @@ describe("component agreement", () => {
     const next = generator(20_260_101);
     const dates = datesBetween("2026-01-01", "2026-04-30");
 
-    atDate("2026-05-01");
-    await sweepToToday(as);
-
+    // The clock walks with the ledger rather than jumping to the end of it: a
+    // skip is charged against the Balance of the day it is marked, so marking
+    // four months in one sitting would be four months of refusals.
+    let skipsBought = 0;
     for (const date of dates) {
+      atDate(date);
+      await sweepToToday(as);
+
       const day = await as.query(api.days.get, { date });
       for (const entry of day.roster) {
         const outcome = MARKS[next(MARKS.length)]!;
-        await as.mutation(api.marks.append, {
-          date,
-          routineId: entry.routineId,
-          outcome,
-        });
+        if (await markOrFallBack(as, { date, routineId: entry.routineId, outcome })) {
+          skipsBought += 1;
+        }
       }
       // One day in five is left awaiting review, forever.
       if (next(5) !== 0) await as.mutation(api.days.close, { date });
     }
+
+    expect(skipsBought).toBeGreaterThan(0);
+
+    atDate("2026-05-01");
+    await sweepToToday(as);
 
     // Windows of every shape the product asks for: a week, a month, a quarter,
     // a year, and arbitrary per-routine spans.

@@ -6,16 +6,19 @@ import { EVERY_DAY } from "#domain/schedule";
 import type { Id } from "./_generated/dataModel";
 
 import { api, internal } from "./_generated/api";
-import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
+import { atDate, bankSkips, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
 
 type Ledger = Awaited<ReturnType<typeof fixture>>;
 
 /** A week of marked and closed days, two routines, plus one open day. */
 async function fixture() {
   const t = initConvexTest();
-  atDate("2026-03-01");
   const as = await signIn(t);
-  await as.mutation(api.owners.ensure, { timezone: "UTC" });
+  // The skip below is a purchase, so the ledger opens with one banked. Its days
+  // sit in February, outside every window this file verifies.
+  const bank = await bankSkips(as, { count: 1, before: "2026-03-01" });
+
+  atDate("2026-03-01");
   const { routineId } = await as.mutation(api.routines.create, {
     name: "Run",
     dowMask: EVERY_DAY,
@@ -39,7 +42,7 @@ async function fixture() {
     await as.mutation(api.days.close, { date });
   }
 
-  return { t, as, routineId, secondId: second.routineId };
+  return { t, as, routineId, secondId: second.routineId, bank };
 }
 
 function verifyMarch({ as }: Ledger) {
@@ -320,7 +323,9 @@ describe("rebuild equivalence", () => {
     });
 
     await dropEveryDayStat(l);
-    await l.as.mutation(api.rebuild.dayStats, { from: "2026-03-01", to: "2026-03-08" });
+    // Every row is dropped, so every row is rebuilt: the banked days are as
+    // much of the ledger as the week under test.
+    await l.as.mutation(api.rebuild.dayStats, { from: l.bank.from, to: "2026-03-08" });
     await l.as.mutation(api.rebuild.aggregates, {});
 
     const after = await dayStatRows(l);

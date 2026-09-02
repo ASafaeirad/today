@@ -6,7 +6,7 @@ import { EVERY_DAY } from "#domain/schedule";
 import type { Id } from "./_generated/dataModel";
 
 import { api, internal } from "./_generated/api";
-import { atDate, initConvexTest, realTime, signIn } from "./setup.spec";
+import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
 
 type Ledger = Awaited<ReturnType<typeof fixture>>;
 
@@ -26,7 +26,7 @@ async function fixture() {
   });
 
   atDate("2026-03-08");
-  await as.mutation(api.owners.sweep, {});
+  await sweepToToday(as);
   for (const date of datesBetween("2026-03-01", "2026-03-05")) {
     await as.mutation(api.marks.append, { date, routineId, outcome: "done" });
   }
@@ -72,6 +72,14 @@ async function forgeDayStats({ t }: Ledger, date: string, done: number) {
   await t.run(async (ctx) => {
     const rows = await ctx.db.query("dayStats").collect();
     await ctx.db.patch(rows.find((row) => row.date === date)!._id, { done });
+  });
+}
+
+/** Undoes one Instance's seal, which is what a faulty close would leave behind. */
+async function forgeUnseal({ t }: Ledger, date: string) {
+  await t.run(async (ctx) => {
+    const rows = await ctx.db.query("instances").collect();
+    await ctx.db.patch(rows.find((row) => row.date === date)!._id, { closedAt: null });
   });
 }
 
@@ -124,7 +132,13 @@ describe("verification", () => {
     expect(finding).toMatch(/2026-03-02/u);
     expect(finding).toMatch(/expected \{done, /u);
     expect(finding).toMatch(/found \{missed, /u);
-    expect(finding).toMatch(new RegExp(`verify:${report.runId}`, "u"));
+
+    // The printed command is the repair path, so it has to be one the mutation
+    // accepts: Convex rejects an unexpected argument.
+    expect(finding).toMatch(/-> repair\.range\(\{ from: "2026-03-02", to: "2026-03-02" \}\)$/u);
+
+    // The run that found it is named by the row that stores the findings.
+    expect((await batchRunRow(l, report.runId))?.findings).toContain(finding);
   });
 
   test("never repairs what it finds", async () => {
@@ -166,8 +180,20 @@ describe("verification", () => {
       /pinned through 2026-03-08 but today is 2026-03-20/u,
     );
 
-    await l.as.mutation(api.owners.sweep, {});
+    await sweepToToday(l.as);
     expect((await verifyMarch(l)).findings).toEqual([]);
+  });
+
+  test("catches an unsettled instance inside a closed day", async () => {
+    const l = await fixture();
+    await forgeUnseal(l, "2026-03-04");
+
+    const finding = (await verifyMarch(l)).findings.find((line) =>
+      line.startsWith("instance-seal"),
+    );
+
+    expect(finding).toMatch(/2026-03-04/u);
+    expect(finding).toMatch(/unsettled inside a day closed at/u);
   });
 
   test("prints the date of the last full verify", async () => {
@@ -203,6 +229,29 @@ describe("repair", () => {
 
     expect(second.stats!.digest).toBe(first.stats!.digest);
     expect(second.roster).toEqual(first.roster);
+  });
+
+  test("seals what it restores into a closed day", async () => {
+    const l = await fixture();
+    await dropInstance(l, "2026-03-04");
+
+    await l.as.mutation(api.repair.range, { from: "2026-03-04", to: "2026-03-04" });
+
+    // Unsealed, the restored Instance would be folded as missed by the
+    // projection and counted as pending by the aggregates.
+    const day = await l.as.query(api.days.get, { date: "2026-03-04" });
+    expect(day.roster).toHaveLength(2);
+    expect(day.roster.map((entry) => entry.settled)).toEqual([true, true]);
+    expect((await verifyMarch(l)).findings).toEqual([]);
+  });
+
+  test("re-seals an instance a faulty close left unsettled", async () => {
+    const l = await fixture();
+    await forgeUnseal(l, "2026-03-04");
+
+    await l.as.mutation(api.repair.range, { from: "2026-03-04", to: "2026-03-04" });
+
+    expect((await verifyMarch(l)).findings).toEqual([]);
   });
 
   test("refills a hole left by a write path that skipped the sweep", async () => {

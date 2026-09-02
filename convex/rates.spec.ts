@@ -5,7 +5,7 @@ import { datesBetween } from "#domain/date";
 import { EVERY_DAY, maskFromDays } from "#domain/schedule";
 
 import { api } from "./_generated/api";
-import { atDate, initConvexTest, realTime, signIn } from "./setup.spec";
+import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
 
 type Ledger = Awaited<ReturnType<typeof ledger>>;
 
@@ -37,7 +37,7 @@ describe("rates", () => {
     });
 
     atDate("2026-03-04");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await as.mutation(api.marks.append, {
       date: "2026-03-01",
       routineId,
@@ -75,7 +75,7 @@ describe("rates", () => {
     await as.mutation(api.days.close, { date: "2026-03-01" });
 
     atDate("2026-03-02");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
 
     const answer = await as.query(api.rates.window, {
       from: "2026-03-01",
@@ -92,7 +92,7 @@ describe("rates", () => {
     await as.mutation(api.routines.create, { name: "Run", dowMask: EVERY_DAY });
 
     atDate("2026-03-05");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await as.mutation(api.days.close, { date: "2026-03-01" });
 
     const answer = await as.query(api.rates.window, {
@@ -116,7 +116,7 @@ describe("rates", () => {
     await as.mutation(api.schedules.set, { routineId, dowMask: 0 });
 
     atDate("2026-03-05");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await closeEach(l, "2026-03-01", "2026-03-05");
 
     const answer = await as.query(api.rates.window, {
@@ -145,7 +145,7 @@ describe("rates", () => {
     await as.mutation(api.schedules.retire, { routineId });
 
     atDate("2026-06-01");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
 
     const lapsed = await as.query(api.rates.window, {
       from: "2026-01-01",
@@ -176,7 +176,10 @@ describe("rates", () => {
     });
     await as.mutation(api.schedules.retire, { routineId });
 
+    // Two years of backlog is more than one transaction pins, so the catch-up
+    // runs first and the edit lands on a watermark that has reached today.
     atDate("2027-06-01");
+    await sweepToToday(as);
     await as.mutation(api.schedules.set, { routineId, dowMask: EVERY_DAY });
 
     const history = await as.query(api.schedules.history, { routineId });
@@ -197,7 +200,7 @@ describe("rates", () => {
     });
 
     atDate("2026-03-05");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     for (const date of datesBetween("2026-02-01", "2026-02-28")) {
       await as.mutation(api.marks.append, { date, routineId, outcome: "done" });
     }
@@ -225,7 +228,7 @@ describe("the receipt", () => {
     await as.mutation(api.routines.create, { name: "Run", dowMask: EVERY_DAY });
 
     atDate("2026-03-03");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await closeEach(l, "2026-03-01", "2026-03-02");
 
     const answer = await as.query(api.rates.window, {
@@ -254,7 +257,7 @@ describe("the receipt", () => {
     });
 
     atDate("2026-02-15");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     for (const date of datesBetween("2026-01-05", "2026-01-20")) {
       const day = await as.query(api.days.get, { date });
       if (day.roster.length === 0) continue;
@@ -282,7 +285,7 @@ describe("the receipt", () => {
     });
 
     atDate("2026-03-05");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await as.mutation(api.marks.append, {
       date: "2026-03-02",
       routineId,
@@ -320,7 +323,7 @@ describe("the receipt", () => {
     });
 
     atDate("2026-03-03");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     for (const date of datesBetween("2026-03-01", "2026-03-02")) {
       await as.mutation(api.marks.append, {
         date,

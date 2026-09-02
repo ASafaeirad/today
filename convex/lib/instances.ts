@@ -75,12 +75,19 @@ export function instancesBetween(
  * Place the Instance a schedule version puts on a date. The outcome triple is
  * written by the resolver here too: with no Marks yet it resolves to `missed`
  * with a null citation, which is explicit and falsifiable.
+ *
+ * `seal` carries the day's own `closedAt`, and only repair passes it: an
+ * Instance restored into a day that is already closed is settled the moment it
+ * exists. Left unsealed it would be folded as missed by the projection and
+ * counted as pending by the aggregates, which is the two disagreeing about one
+ * cell. The sweep places into open days, so it passes nothing.
  */
 export async function placeInstance(
   ctx: MutationCtx,
   input: Cell & {
     scheduleVersionId: Id<"scheduleVersions">;
     dayRev: number;
+    seal?: number | null;
     tolerateDrift?: boolean;
   },
 ): Promise<Doc<"instances">> {
@@ -90,7 +97,7 @@ export async function placeInstance(
     date: input.date,
     routineId: input.routineId,
     scheduleVersionId: input.scheduleVersionId,
-    closedAt: null,
+    closedAt: input.seal ?? null,
     ...resolution,
   });
   const doc = (await ctx.db.get(id))!;

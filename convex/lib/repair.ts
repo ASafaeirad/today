@@ -30,6 +30,10 @@ export interface RepairReport {
  * A closed day's roster is pinned, so an extra Instance there is reported by
  * the verify pass and never deleted here. The interval log is load-bearing for
  * open and awaiting-review rosters only.
+ *
+ * What repair does restore into a closed day it seals with that day's own
+ * `closedAt`, so the day stays what a close means: every Instance on it
+ * settled, and the projection and the aggregates counting the same cells.
  */
 export async function repairDate(
   ctx: MutationCtx,
@@ -58,6 +62,9 @@ export async function repairDate(
   const pinned = new Map(existing.map((i) => [i.routineId as string, i]));
   const expectedRoutines = new Set(expected.map((entry) => entry.routineId as string));
 
+  // Null on an open or awaiting-review day, which is the sweep's own case.
+  const seal = day.closedAt;
+
   for (const entry of expected) {
     if (pinned.has(entry.routineId)) continue;
     await placeInstance(ctx, {
@@ -66,6 +73,7 @@ export async function repairDate(
       routineId: entry.routineId,
       scheduleVersionId: entry.scheduleVersionId,
       dayRev: await nextRev(),
+      seal,
       tolerateDrift: true,
     });
     report.placed += 1;
@@ -80,7 +88,11 @@ export async function repairDate(
 
     const cell = { ownerId: owner._id, date, routineId: instance.routineId };
     const current = await resolveCell(ctx, cell, instance.outcomeRev);
+    // An Instance that survived a close unsealed is drift too, even when its
+    // outcome agrees: the seal is what decides which side of a rate it lands on.
+    const unsealed = seal !== null && instance.closedAt === null;
     if (
+      !unsealed &&
       current.outcome === instance.outcome &&
       current.resolvedFromMarkId === instance.resolvedFromMarkId
     ) {
@@ -88,6 +100,7 @@ export async function repairDate(
     }
 
     await applyResolution(ctx, instance, await resolveCell(ctx, cell, await nextRev()), {
+      seal: seal ?? undefined,
       tolerateDrift: true,
     });
     report.resolved += 1;

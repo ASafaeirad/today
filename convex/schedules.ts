@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { daysFromMask } from "#domain/schedule";
+import { assertDowMask, daysFromMask } from "#domain/schedule";
 
 import { ownedMutation, ownedQuery } from "./lib/functions";
 import { closePlusOpen, versionsFor } from "./lib/schedules";
@@ -16,9 +16,7 @@ export const set = ownedMutation({
   args: { routineId: v.id("routines"), dowMask: v.number() },
   handler: async (ctx, args) => {
     await requireRoutine(ctx, ctx.owner._id, args.routineId);
-    if (args.dowMask < 0 || args.dowMask > 0b111_1111) {
-      throw new Error(`Not a day-of-week mask: ${args.dowMask}`);
-    }
+    assertDowMask(args.dowMask);
     return closePlusOpen(ctx, {
       owner: ctx.owner,
       today: ctx.today,

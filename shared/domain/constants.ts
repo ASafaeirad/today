@@ -23,3 +23,12 @@ export const MAX_EAGER_FOLDS = 400;
 
 /** The document budget a rate answer is measured against. */
 export const RATE_DOCUMENT_LIMIT = 40;
+
+/**
+ * The sweep's scope rule, in the same shape as the eager one above. A backlog
+ * past either bound is pinned in committed chunks by `owners.sweep` rather than
+ * in the one transaction a normal mutation gets, which an owner returning after
+ * a long absence would overrun with no way to make progress.
+ */
+export const MAX_SWEEP_DAYS = 31;
+export const MAX_SWEEP_PLACEMENTS = 400;

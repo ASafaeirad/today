@@ -6,7 +6,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 
 import { mutation, query, type MutationCtx } from "../_generated/server";
 import { requireOwner, todayFor } from "./owner";
-import { sweepTo } from "./sweep";
+import { sweepBeforeWrite } from "./sweep";
 
 export interface OwnerContext {
   owner: Doc<"owners">;
@@ -23,13 +23,16 @@ export interface OwnerContext {
  * like a legitimately empty stretch: it is always repairable, because Instances
  * are a pure function of immutable inputs, but detection is a job someone has
  * to run rather than an invariant the storage holds.
+ *
+ * A backlog too large for one transaction is refused rather than half swept.
+ * `owners.sweep` is the resumable path out of it.
  */
 export const ownedMutation = customMutation(
   mutation,
   customCtx(async (ctx): Promise<OwnerContext> => {
     const owner = await requireOwner(ctx);
     const today = todayFor(owner);
-    return { owner: await sweepTo(ctx, owner, today), today };
+    return { owner: await sweepBeforeWrite(ctx, owner, today), today };
   }),
 );
 
@@ -53,5 +56,5 @@ export async function ownerById(
   const owner = await ctx.db.get(ownerId);
   if (!owner) throw new Error("Owner not found");
   const today = todayFor(owner);
-  return { ...ctx, owner: await sweepTo(ctx, owner, today), today };
+  return { ...ctx, owner: await sweepBeforeWrite(ctx, owner, today), today };
 }

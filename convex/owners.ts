@@ -1,8 +1,11 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "./_generated/server";
-import { ownedMutation } from "./lib/functions";
-import { ensureOwner, findOwner, todayFor } from "./lib/owner";
+import type { Doc } from "./_generated/dataModel";
+
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
+import { ensureOwner, findOwner, requireOwner, todayFor } from "./lib/owner";
+import { sweepTo } from "./lib/sweep";
 
 /**
  * Creates the owner row on first use and freezes its timezone. This is the one
@@ -31,11 +34,43 @@ export const current = query({
   },
 });
 
-/** Runs the sweep and nothing else, for a client opening the app after a gap. */
-export const sweep = ownedMutation({
+/**
+ * Runs the sweep and nothing else, for a client opening the app after a gap.
+ *
+ * The one write path allowed to leave the watermark behind today, and therefore
+ * the only way out of a backlog no single transaction can pin. Each call pins a
+ * bounded chunk, commits it and schedules the next, so a long absence converges
+ * in steps instead of failing forever. `caughtUp` lets a client that would
+ * rather not wait for the continuation drive the same loop itself; either way a
+ * re-run past the watermark writes nothing.
+ */
+export const sweep = mutation({
   args: {},
-  handler: (ctx) => ({
-    today: ctx.today,
-    pinsThroughDate: ctx.owner.pinsThroughDate,
-  }),
+  handler: async (ctx) => {
+    const owner = await requireOwner(ctx);
+    return catchUp(ctx, owner);
+  },
 });
+
+/** The continuation of the above. Carries an owner id instead of an identity. */
+export const continueSweep = internalMutation({
+  args: { ownerId: v.id("owners") },
+  handler: async (ctx, args) => {
+    const owner = await ctx.db.get(args.ownerId);
+    if (!owner) return;
+    await catchUp(ctx, owner);
+  },
+});
+
+async function catchUp(ctx: MutationCtx, owner: Doc<"owners">) {
+  const today = todayFor(owner);
+  const swept = await sweepTo(ctx, owner, today);
+  if (!swept.caughtUp) {
+    await ctx.scheduler.runAfter(0, internal.owners.continueSweep, { ownerId: owner._id });
+  }
+  return {
+    today,
+    pinsThroughDate: swept.owner.pinsThroughDate,
+    caughtUp: swept.caughtUp,
+  };
+}

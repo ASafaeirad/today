@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { RETIREMENT_THRESHOLD } from "#domain/constants";
 import { consecutiveMisses, shouldSuggestRetirement } from "#domain/retirement";
-import { coversDate, daysFromMask } from "#domain/schedule";
+import { assertDowMask, coversDate, daysFromMask } from "#domain/schedule";
 
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
@@ -50,6 +50,8 @@ export const list = ownedQuery({
 export const create = ownedMutation({
   args: { name: v.string(), dowMask: v.number() },
   handler: async (ctx, args) => {
+    assertDowMask(args.dowMask);
+
     const routineId = await ctx.db.insert("routines", {
       ownerId: ctx.owner._id,
       name: args.name,

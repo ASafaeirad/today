@@ -5,7 +5,7 @@ import { datesBetween } from "#domain/date";
 import { EVERY_DAY } from "#domain/schedule";
 
 import { api, internal } from "./_generated/api";
-import { atDate, initConvexTest, realTime, signIn } from "./setup.spec";
+import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
 
 type Ledger = Awaited<ReturnType<typeof ledger>>;
 
@@ -55,7 +55,7 @@ describe("the balance", () => {
     });
 
     atDate("2026-03-10");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await markEach(l, {
       routineId,
       from: "2026-03-01",
@@ -81,7 +81,7 @@ describe("the balance", () => {
     });
 
     atDate("2026-03-10");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await markEach(l, {
       routineId,
       from: "2026-03-01",
@@ -119,7 +119,7 @@ describe("the balance", () => {
     });
 
     atDate("2026-03-10");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await markEach(l, {
       routineId,
       from: "2026-03-01",
@@ -150,7 +150,7 @@ describe("the balance", () => {
     });
 
     atDate("2026-03-30");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await as.mutation(api.days.close, { date: "2026-01-20" });
 
     const before = await as.query(api.balance.current, {});
@@ -188,7 +188,7 @@ describe("the balance", () => {
     });
 
     atDate("2026-03-10");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await markEach(l, {
       routineId,
       from: "2026-03-01",
@@ -219,7 +219,7 @@ describe("the retirement counter", () => {
     });
 
     atDate(`2026-03-0${RETIREMENT_THRESHOLD + 1}`);
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
 
     let lastClose;
     for (const date of datesBetween("2026-03-01", `2026-03-0${RETIREMENT_THRESHOLD}`)) {
@@ -241,13 +241,13 @@ describe("the retirement counter", () => {
     });
 
     atDate("2026-03-03");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await closeEach(l, "2026-03-01", "2026-03-03");
 
     // Pausing on the third takes effect on the fourth.
     await as.mutation(api.schedules.set, { routineId, dowMask: 0 });
     atDate("2026-03-08");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     await closeEach(l, "2026-03-04", "2026-03-08");
 
     // No Instance exists for the paused days, so the run of misses is unbroken.

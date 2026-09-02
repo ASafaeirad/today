@@ -36,6 +36,21 @@ export function maskFromDays(days: readonly number[]): number {
   return days.reduce((mask, day) => mask | (1 << day), 0);
 }
 
+/**
+ * The seven-bit mask is the whole domain of a schedule row, and the bitwise
+ * operators that read it silently accept everything outside it: 128 places no
+ * day while still reading as active, and a negative mask places every day. Both
+ * write an immutable row, so the check belongs before the insert.
+ */
+export function isDowMask(mask: number): boolean {
+  return Number.isInteger(mask) && mask >= PAUSED && mask <= EVERY_DAY;
+}
+
+export function assertDowMask(mask: number): number {
+  if (!isDowMask(mask)) throw new Error(`Not a day-of-week mask: ${mask}`);
+  return mask;
+}
+
 export function daysFromMask(mask: number): number[] {
   return [0, 1, 2, 3, 4, 5, 6].filter((day) => (mask & (1 << day)) !== 0);
 }

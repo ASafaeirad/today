@@ -7,7 +7,7 @@ import { EVERY_DAY, maskFromDays } from "#domain/schedule";
 import type { Id } from "./_generated/dataModel";
 
 import { api } from "./_generated/api";
-import { atDate, initConvexTest, realTime, signIn } from "./setup.spec";
+import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
 
 /** Seeded, so a failure is reproducible rather than a story about one run. */
 function generator(seed: number) {
@@ -45,7 +45,7 @@ describe("component agreement", () => {
     const dates = datesBetween("2026-01-01", "2026-04-30");
 
     atDate("2026-05-01");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
 
     for (const date of dates) {
       const day = await as.query(api.days.get, { date });
@@ -84,7 +84,7 @@ describe("component agreement", () => {
     await as.mutation(api.routines.create, { name: "Run", dowMask: EVERY_DAY });
 
     atDate("2026-03-10");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
     for (const date of datesBetween("2026-03-01", "2026-03-05")) {
       await as.mutation(api.days.close, { date });
     }
@@ -132,7 +132,7 @@ describe("the adoption gate", () => {
     }
 
     atDate("2025-12-31");
-    await as.mutation(api.owners.sweep, {});
+    await sweepToToday(as);
 
     const instances = await t.run((ctx) => ctx.db.query("instances").collect());
     expect(instances.length).toBeGreaterThan(1_300);

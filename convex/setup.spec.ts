@@ -5,6 +5,7 @@ import { register as registerBatchWorker } from "@convex-dev/batch-worker/test";
 import { convexTest, type TestConvex } from "convex-test";
 import { test, vi } from "vite-plus/test";
 
+import { api } from "./_generated/api";
 import schema from "./schema";
 
 export const modules = import.meta.glob("./**/*.*s");
@@ -28,6 +29,16 @@ export function initConvexTest(): TestConvex<typeof schema> {
 export async function signIn(t: TestConvex<typeof schema>) {
   const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Owner" }));
   return t.withIdentity({ subject: `${userId}|test-session` });
+}
+
+/**
+ * Drives `owners.sweep` to today. The sweep pins a bounded chunk per call, so a
+ * fixture spanning more than a month needs the loop a client would run.
+ */
+export async function sweepToToday(as: Awaited<ReturnType<typeof signIn>>) {
+  let result = await as.mutation(api.owners.sweep, {});
+  while (!result.caughtUp) result = await as.mutation(api.owners.sweep, {});
+  return result;
 }
 
 /**

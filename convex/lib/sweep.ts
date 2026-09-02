@@ -1,4 +1,5 @@
-import { datesBetween, type LocalDate } from "#domain/date";
+import { MAX_SWEEP_DAYS, MAX_SWEEP_PLACEMENTS } from "#domain/constants";
+import { addDays, datesBetween, minDate, type LocalDate } from "#domain/date";
 import { rosterFor } from "#domain/schedule";
 
 import type { Doc, Id } from "../_generated/dataModel";
@@ -19,23 +20,38 @@ import { findInstance, placeInstance } from "./instances";
  *
  * `pinsThroughDate` is the watermark and moves only forward, so a re-run writes
  * nothing and two devices converge.
+ *
+ * The sweep is bounded, because a backlog is not: an owner returning after two
+ * years with a dozen routines is thousands of Instances and their aggregate
+ * writes, which is more than one Convex transaction holds. Past either bound
+ * this pins what it can and reports `caughtUp: false`, and the watermark it
+ * commits is where the next chunk resumes. The bounds are checked at a date
+ * boundary only: half a date's roster is a hole, not progress.
  */
+export interface SweepResult {
+  owner: Doc<"owners">;
+  caughtUp: boolean;
+}
+
 export async function sweepTo(
   ctx: MutationCtx,
   owner: Doc<"owners">,
   today: LocalDate,
-): Promise<Doc<"owners">> {
-  if (owner.pinsThroughDate >= today) return owner;
+): Promise<SweepResult> {
+  if (owner.pinsThroughDate >= today) return { owner, caughtUp: true };
 
   const versions = await ctx.db
     .query("scheduleVersions")
     .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
     .collect();
 
+  let pinnedThrough = owner.pinsThroughDate;
+  let placed = 0;
+
   for (const date of datesBetween(
     // The watermark is the last pinned date, so start the day after it.
-    nextDate(owner.pinsThroughDate),
-    today,
+    addDays(owner.pinsThroughDate, 1),
+    minDate(today, addDays(owner.pinsThroughDate, MAX_SWEEP_DAYS)),
   )) {
     const day = await ensureDay(ctx, owner._id, date);
     for (const entry of rosterFor(date, versions)) {
@@ -46,16 +62,41 @@ export async function sweepTo(
         scheduleVersionId: entry.scheduleVersionId,
         dayRev: day.rev,
       });
+      placed += 1;
     }
+    pinnedThrough = date;
+    if (placed >= MAX_SWEEP_PLACEMENTS) break;
   }
 
-  await ctx.db.patch(owner._id, { pinsThroughDate: today });
-  return (await ctx.db.get(owner._id))!;
+  await ctx.db.patch(owner._id, { pinsThroughDate: pinnedThrough });
+  return {
+    owner: (await ctx.db.get(owner._id))!,
+    caughtUp: pinnedThrough >= today,
+  };
 }
 
-function nextDate(date: LocalDate): LocalDate {
-  const [year, month, day] = date.split("-").map(Number) as [number, number, number];
-  return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
+/**
+ * The sweep as a write path owes it. A backlog too large to pin in one
+ * transaction is not pinned *partly* here: the mutation is refused, because
+ * writing against a watermark still behind today is exactly the retroactive
+ * reshaping the obligation exists to prevent. `owners.sweep` is the path that
+ * advances the watermark in committed chunks, and every other mutation works
+ * again once it has caught up.
+ */
+export async function sweepBeforeWrite(
+  ctx: MutationCtx,
+  owner: Doc<"owners">,
+  today: LocalDate,
+): Promise<Doc<"owners">> {
+  const swept = await sweepTo(ctx, owner, today);
+  if (!swept.caughtUp) {
+    throw new Error(
+      `Instances are pinned through ${swept.owner.pinsThroughDate} but today is ${today}, ` +
+        `over the sweep limit of ${MAX_SWEEP_DAYS} days or ${MAX_SWEEP_PLACEMENTS} Instances. ` +
+        `Call owners.sweep until it reports caughtUp.`,
+    );
+  }
+  return swept.owner;
 }
 
 /**

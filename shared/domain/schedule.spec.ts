@@ -3,6 +3,8 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   checkScheduleWrite,
   daysFromMask,
+  EVERY_DAY,
+  isDowMask,
   maskFromDays,
   placesOn,
   rosterFor,
@@ -26,6 +28,18 @@ describe("the interval log", () => {
   it("round-trips a day-of-week mask", () => {
     expect(daysFromMask(maskFromDays([0, 6]))).toEqual([0, 6]);
     expect(maskFromDays([])).toBe(0);
+  });
+
+  it("admits only the seven bits as a mask", () => {
+    expect(isDowMask(0)).toBe(true);
+    expect(isDowMask(EVERY_DAY)).toBe(true);
+
+    // 128 reads as active and places no day; -1 is coerced into every day; a
+    // fraction is neither.
+    expect(isDowMask(EVERY_DAY + 1)).toBe(false);
+    expect(isDowMask(-1)).toBe(false);
+    expect(isDowMask(1.5)).toBe(false);
+    expect(isDowMask(Number.NaN)).toBe(false);
   });
 
   it("places a routine only on covered dates its mask names", () => {

@@ -1,6 +1,4 @@
-import type { VariantProps } from "class-variance-authority";
-
-import { cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "#lib/cn";
 
@@ -22,6 +20,7 @@ const labelVariants = cva(
 export type LabelProps = React.ComponentProps<"label"> & VariantProps<typeof labelVariants>;
 
 export function Label({ className, tone = "muted", ...props }: LabelProps) {
+  // oxlint-disable-next-line jsx-a11y/label-has-associated-control
   return <label data-slot="label" className={cn(labelVariants({ tone }), className)} {...props} />;
 }
 

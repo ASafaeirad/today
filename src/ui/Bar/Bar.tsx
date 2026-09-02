@@ -1,6 +1,4 @@
-import type { VariantProps } from "class-variance-authority";
-
-import { cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "#lib/cn";
 
@@ -105,5 +103,3 @@ export function BarItem({
 export function BarSpacer({ className, ...props }: React.ComponentProps<"span">) {
   return <span data-slot="bar-spacer" className={cn("flex-1", className)} {...props} />;
 }
-
-export { barItemVariants, barVariants };

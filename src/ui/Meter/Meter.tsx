@@ -1,7 +1,5 @@
-import type { VariantProps } from "class-variance-authority";
-
 import { Meter as MeterPrimitive } from "@base-ui/react/meter";
-import { cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "#lib/cn";
 

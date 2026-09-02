@@ -10,7 +10,7 @@ because the horizon is the ceiling: the bank cannot exceed what 30 days can mint
 **A cap, clamped at read**: `clamp(Σ minted − Σ spent, 0, CAP)`, which is what this project
 carried until now. It is the simplest arithmetic available and completely order-independent, but
 it does not do the job. An owner who mints 60 skips and spends 5 still has 55, so the clamp shows a
-ceiling the owner never actually hits. Overflow was documented as *hidden, not destroyed*; the
+ceiling the owner never actually hits. Overflow was documented as _hidden, not destroyed_; the
 consequence nobody costed is that a hidden overflow is a bank, and after any good run skipping
 becomes free. It also cannot be explained by pointing at days: no day accounts for a displayed 5
 when the totals are 60 and 10.
@@ -24,13 +24,13 @@ something other than one. That breaks the promise **Hold** makes to the owner ab
 will cost.
 
 **Limiting the spend rate instead**: keep a true lifetime total, allow at most one spend per seven
-local dates. This preserves *banked skips never expire* and stops a large bank being dumped at
+local dates. This preserves _banked skips never expire_ and stops a large bank being dumped at
 once, which is the failure the cap was aimed at. Rejected because the bank still grows without
 limit, and a balance reading 60 tells the owner a skip is free whatever the rate limit says.
 
 ## Consequences
 
-**One parent constraint is withdrawn.** *Banked skips do not expire* is no longer true: they age
+**One parent constraint is withdrawn.** _Banked skips do not expire_ is no longer true: they age
 out. That constraint and the cap were two attempts at one goal, and they could not both be kept.
 
 **The balance stops being a fold over all history.** It is a count over the days inside the

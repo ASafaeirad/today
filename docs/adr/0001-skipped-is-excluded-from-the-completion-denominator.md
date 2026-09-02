@@ -1,7 +1,7 @@
 # Skipped is excluded from the completion denominator
 
 The completion rate is `done / (done + missed)`. A skipped instance appears on neither side. This
-is what the balance is *for*: a banked skip is currency the user spends to keep an instance out of
+is what the balance is _for_: a banked skip is currency the user spends to keep an instance out of
 the rate, so charging the rate as well would mean paying twice for one decision, which is the
 streak-app guilt loop the tool exists to escape.
 

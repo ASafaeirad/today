@@ -74,7 +74,9 @@ describe("component agreement", () => {
       expect(recounted.agrees).toBe(true);
       expect(recounted.counts).toEqual(recounted.component);
     }
-  });
+    // Four months of marks and closes sits just under the default timeout on a
+    // developer machine and just over it on a CI runner.
+  }, 30_000);
 
   test("the receipt's excluded tallies reconcile with the instances in range", async () => {
     const t = initConvexTest();

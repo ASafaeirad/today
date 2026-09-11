@@ -1,0 +1,26 @@
+{
+  "pkg": "today",
+  "globalName": "Vigil",
+  "shape": "storybook",
+  "storybookConfigDir": ".storybook",
+  "storybookStatic": ".design-sync/sb-reference",
+  "entry": "src/ui/index.ts",
+  "buildCmd": "pnpm i --frozen-lockfile",
+  "libOverrides": {
+    "story-imports.mjs": "stories use Storybook CSF factories (definePreview/meta.story); the inert @storybook/* stub has no definePreview own-prop, so every preview crashed"
+  },
+  "overrides": {
+    "Meter": {
+      "cardMode": "single",
+      "primaryStory": "Matrix"
+    },
+    "Row": {
+      "cardMode": "column"
+    },
+    "Field": {
+      "viewport": "1280x800"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "projectId": "b9da62ab-e24c-45d4-81b5-caad9c3ef7df"
+}

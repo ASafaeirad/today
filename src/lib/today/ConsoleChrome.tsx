@@ -34,8 +34,12 @@ export function TopBar({ date, mode, sealed, onMode }: TopBarProps) {
     <Bar>
       <BarBrand>today</BarBrand>
       <BarItem>
-        <span className="sm:hidden">{shortDayLabel(date)}</span>
-        <span className="hidden sm:inline">{dayLabel(date)}</span>
+        <Text tone="record" className="sm:hidden">
+          {shortDayLabel(date)}
+        </Text>
+        <Text tone="record" className="hidden sm:inline">
+          {dayLabel(date)}
+        </Text>
       </BarItem>
       <BarSpacer />
       <ToggleGroup

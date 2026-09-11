@@ -6,7 +6,7 @@ export const Route = createFileRoute("/")({
       return;
     }
     throw redirect({
-      to: context.auth.isAuthenticated ? "/" : "/sign-in",
+      to: context.auth.isAuthenticated ? "/today" : "/sign-in",
     });
   },
 });

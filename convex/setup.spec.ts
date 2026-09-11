@@ -17,8 +17,15 @@ export const modules = import.meta.glob("./**/*.*s");
 /** The two aggregate mounts from `convex.config.ts`, plus the worker each uses. */
 const AGGREGATE_NAMES = ["instancesByOwner", "instancesByRoutine"];
 
-export function initConvexTest(): TestConvex<typeof schema> {
-  const t = convexTest(schema, modules);
+export function initConvexTest(documentsReadLimit?: number): TestConvex<typeof schema> {
+  const t =
+    documentsReadLimit === undefined
+      ? convexTest(schema, modules)
+      : convexTest({
+          schema,
+          modules,
+          transactionLimits: { documentsRead: documentsReadLimit },
+        });
   for (const name of AGGREGATE_NAMES) {
     registerAggregate(t, name);
     registerBatchWorker(t, `${name}/batchWorker`);

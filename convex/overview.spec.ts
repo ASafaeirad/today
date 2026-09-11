@@ -9,9 +9,9 @@ import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.
 
 afterEach(realTime);
 
-async function fixture() {
+async function fixture(documentsReadLimit?: number) {
   atDate("2026-09-09");
-  const as = await signIn(initConvexTest());
+  const as = await signIn(initConvexTest(documentsReadLimit));
   await as.mutation(api.owners.ensure, { timezone: "UTC" });
   const { routineId } = await as.mutation(api.routines.create, {
     name: "Read",
@@ -68,4 +68,29 @@ test("overview is bounded like every eager read", async () => {
   expect(await as.query(api.days.overview, { dates: [] })).toEqual([]);
   const tooMany = datesBetween(addDays("2026-09-11", -MAX_EAGER_DAYS), "2026-09-11");
   await expect(as.query(api.days.overview, { dates: tooMany })).rejects.toThrow("limit");
+});
+
+test("overview does not scan days between sparse requested dates", async () => {
+  const { as } = await fixture(100);
+  const dates = ["2026-09-11", "1900-01-01", "2026-09-11"];
+
+  await as.run(async (ctx) => {
+    const owner = await ctx.db.query("owners").unique();
+    for (const date of datesBetween("2026-05-01", "2026-08-31")) {
+      await ctx.db.insert("days", {
+        ownerId: owner!._id,
+        date,
+        closedAt: null,
+        rev: 0,
+        closeKey: null,
+      });
+    }
+  });
+
+  const rows = await as.query(api.days.overview, { dates });
+
+  expect(rows.map((row) => row.date)).toEqual(dates);
+  expect(rows[0]).toMatchObject({ scheduled: 1, open: 1 });
+  expect(rows[1]).toMatchObject({ scheduled: 0, open: 0 });
+  expect(rows[2]).toEqual(rows[0]);
 });

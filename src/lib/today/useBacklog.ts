@@ -15,7 +15,7 @@ export function useBacklog(): DaySummary | undefined {
   const asked = useMemo(() => nudgeDates(backlog ?? []), [backlog]);
   const overview = useQuery(api.days.overview, asked.length === 0 ? "skip" : { dates: asked });
 
-  // A past day with nothing on its roster has nothing to resolve and nothing
-  // worth sealing: it is history, not a nag.
-  return overview?.find((summary) => summary.scheduled > 0);
+  // `days.backlog` has already dropped the days with nothing on their roster,
+  // so the oldest date it names is the one to nag about.
+  return overview?.[0];
 }

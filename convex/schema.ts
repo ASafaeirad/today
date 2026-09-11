@@ -64,6 +64,8 @@ export default defineSchema({
     rev: v.number(),
     /** Idempotency token of the close that sealed the day. */
     closeKey: v.union(v.string(), v.null()),
+    sealed: v.optional(v.boolean()),
+    closingNote: v.optional(v.string()),
   }).index("by_owner_date", ["ownerId", "date"]),
 
   /**

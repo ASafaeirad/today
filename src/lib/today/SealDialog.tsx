@@ -30,14 +30,21 @@ import {
 import type { DayView, RosterEntry } from "./ledger";
 import type { SealCeremony } from "./useSealCeremony";
 
-import { OPS, pad, rowStatus } from "./console";
+import { OPS, pad, rowStatus, type BalanceView } from "./console";
+import { BalanceItem } from "./ConsoleChrome";
 
 /**
  * The ceremony, in two acts: resolve every open line one at a time, then read
  * the record back and lock it. Nothing is written to the day until the lock, so
  * escape at any point leaves it exactly as open as it was.
  */
-export function SealDialog({ seal }: { seal: SealCeremony }) {
+export function SealDialog({
+  seal,
+  balance,
+}: {
+  seal: SealCeremony;
+  balance: BalanceView | undefined;
+}) {
   const { day } = seal;
   const resolving = seal.stage === "resolve";
   const total = day?.roster.length ?? 0;
@@ -73,7 +80,7 @@ export function SealDialog({ seal }: { seal: SealCeremony }) {
               <DialogDescription>reading the record ...</DialogDescription>
             </DialogBody>
           ) : resolving ? (
-            <ResolveStage seal={seal} day={day} total={total} />
+            <ResolveStage seal={seal} day={day} total={total} balance={balance} />
           ) : (
             <LockStage seal={seal} day={day} lockRef={lockRef} />
           )}
@@ -97,8 +104,18 @@ interface StageProps {
   day: DayView;
 }
 
-/** Act one: the same three letters the row toggles use, one line at a time. */
-function ResolveStage({ seal, day, total }: StageProps & { total: number }) {
+/**
+ * Act one: the same three letters the row toggles use, one line at a time. The
+ * skip bank stands in the footer because S spends it here, and the day cannot
+ * seal until every line has a verdict — an owner about to discover the bank is
+ * empty should see it running down rather than meet it as a refusal.
+ */
+function ResolveStage({
+  seal,
+  day,
+  total,
+  balance,
+}: StageProps & { total: number; balance: BalanceView | undefined }) {
   useHotkeys(
     OPS.map((op) => ({ hotkey: op.key, callback: () => seal.resolve(op.value) })),
     { enabled: seal.pending.length > 0 },
@@ -134,6 +151,7 @@ function ResolveStage({ seal, day, total }: StageProps & { total: number }) {
       <DialogFooter>
         <DialogClose render={<Button variant="ghost">esc — nothing locked</Button>} />
         <BarSpacer />
+        <BalanceItem balance={balance} />
         <BarItem tone="muted" divided={false}>
           {total - seal.pending.length}/{total}
         </BarItem>

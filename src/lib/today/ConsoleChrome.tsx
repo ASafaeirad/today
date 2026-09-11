@@ -14,7 +14,15 @@ import {
   ToggleGroup,
 } from "#ui";
 
-import { backlogLine, dayLabel, shortDayLabel, type DaySummary, type Mode } from "./console";
+import {
+  backlogLine,
+  balanceLine,
+  dayLabel,
+  shortDayLabel,
+  type BalanceView,
+  type DaySummary,
+  type Mode,
+} from "./console";
 
 interface TopBarProps {
   date: LocalDate;
@@ -102,13 +110,24 @@ export function BacklogBar({ summary, onResolve }: BacklogBarProps) {
   );
 }
 
-/** A refusal from the ledger, printed under the prompt until the next tap. */
-export function Notice({ text }: { text: string }) {
+/**
+ * A refusal from the ledger, printed under the prompt until it is dismissed: an
+ * unaffordable skip leaves the line open, and the owner is owed the reason on
+ * screen rather than a tap that quietly did nothing.
+ *
+ * Tinted rather than filled. `tone-bg` would paint the surface `--tone` while
+ * `Text tone="record"` paints the ink the same `--tone` — the two are only
+ * legible together over a tint.
+ */
+export function Notice({ text, onDismiss }: { text: string; onDismiss: () => void }) {
   return (
-    <div className="tone-missed tone-tint border-b border-border px-2.5 py-1">
-      <Text tone="record" size="sm" role="alert">
+    <div className="tone-missed tone-tint flex items-center gap-2.5 border-b border-border px-2.5 py-1">
+      <Text tone="record" size="sm" role="alert" className="min-w-0 flex-1">
         ! {text}
       </Text>
+      <Button variant="ghost" size="sm" className="min-h-11 sm:min-h-6" onClick={onDismiss}>
+        dismiss
+      </Button>
     </div>
   );
 }
@@ -117,13 +136,26 @@ interface ProgressLineProps {
   resolved: number;
   scheduled: number;
   open: number;
+  /** Undefined until the horizon has been read. */
+  balance: BalanceView | undefined;
   /** False on a day with nothing to seal, and on one already sealed. */
   canSeal: boolean;
   onSeal: () => void;
 }
 
-/** The day's progress, written as the command that would finish it. */
-export function TrackLine({ resolved, scheduled, open, canSeal, onSeal }: ProgressLineProps) {
+/**
+ * The day's progress, written as the command that would finish it. The skip
+ * bank rides along on the wide layout: it is what the S key costs, and the
+ * narrow one keeps the line to the two numbers a thumb is deciding between.
+ */
+export function TrackLine({
+  resolved,
+  scheduled,
+  open,
+  balance,
+  canSeal,
+  onSeal,
+}: ProgressLineProps) {
   return (
     <CommandLine
       action={open > 0 ? "seal --resolve-first" : "seal --now"}
@@ -134,7 +166,25 @@ export function TrackLine({ resolved, scheduled, open, canSeal, onSeal }: Progre
         {resolved}/{scheduled}
       </CommandLineValue>{" "}
       resolved today · <CommandLineValue>{open}</CommandLineValue> open
+      {balance && (
+        <span className="hidden sm:inline">
+          {" · skip bank "}
+          <CommandLineValue>
+            {balance.available}/{balance.minted}
+          </CommandLineValue>
+        </span>
+      )}
     </CommandLine>
+  );
+}
+
+/** The same reading where there is no room to spell it out twice. */
+export function BalanceItem({ balance }: { balance: BalanceView | undefined }) {
+  if (balance === undefined) return null;
+  return (
+    <BarItem tone="muted" className="uppercase">
+      {balanceLine(balance)}
+    </BarItem>
   );
 }
 

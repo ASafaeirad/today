@@ -49,7 +49,7 @@ export function TodayConsole({ today }: { today: LocalDate }) {
         {!planning && backlog ? (
           <BacklogBar summary={backlog} onResolve={() => c.seal.begin(backlog.date)} />
         ) : null}
-        {c.notice ? <Notice text={c.notice} /> : null}
+        {c.notice ? <Notice text={c.notice} onDismiss={() => c.dismissNotice()} /> : null}
         <div className="px-2.5 pt-2.5">
           {planning ? (
             <PlanLine count={c.plan.routines?.length ?? 0} />
@@ -58,6 +58,7 @@ export function TodayConsole({ today }: { today: LocalDate }) {
               resolved={scheduled - open}
               scheduled={scheduled}
               open={open}
+              balance={c.balance}
               canSeal={canSeal}
               onSeal={beginSeal}
             />
@@ -91,7 +92,7 @@ export function TodayConsole({ today }: { today: LocalDate }) {
           {c.announcement}
         </output>
       </div>
-      {c.seal.date !== null ? <SealDialog seal={c.seal} /> : null}
+      {c.seal.date !== null ? <SealDialog seal={c.seal} balance={c.balance} /> : null}
     </div>
   );
 }

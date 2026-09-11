@@ -88,3 +88,21 @@ export function errorText(error: unknown): string {
   const thrown = lines.find((line) => line.startsWith("Uncaught Error:")) ?? lines[0] ?? raw;
   return thrown.replace(/^Uncaught Error:\s*/u, "").replace(/^(?:\[.*?\]\s*)+/u, "");
 }
+
+/**
+ * What the console prints of the Balance: what is still spendable, out of what
+ * the horizon has minted. The rest of the breakdown belongs to a report, not to
+ * a status line — a line that is read mid-tap answers one question.
+ */
+export interface BalanceView {
+  available: number;
+  minted: number;
+}
+
+/**
+ * `skip bank 1/2`. Printed wherever a skip can be bought, so the price of the
+ * S key is on screen before it is pressed rather than only in the refusal.
+ */
+export function balanceLine(balance: BalanceView): string {
+  return `skip bank ${balance.available}/${balance.minted}`;
+}

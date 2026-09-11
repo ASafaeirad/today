@@ -43,7 +43,7 @@ export function BarBrand({ className, ...props }: React.ComponentProps<"span">) 
     <span
       data-slot="bar-brand"
       className={cn(
-        "bg-inverted px-2.5 py-1.25 font-bold tracking-brand text-inverted-foreground",
+        "bg-inverted px-2.5 py-1.25 font-bold flex items-center tracking-brand text-inverted-foreground",
         className,
       )}
       {...props}

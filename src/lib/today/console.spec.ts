@@ -4,6 +4,7 @@ import { MAX_EAGER_DAYS } from "#domain/constants";
 
 import {
   backlogLine,
+  balanceLine,
   dayLabel,
   errorText,
   nudgeDates,
@@ -46,6 +47,14 @@ test("the nudge says what the day never did and what it still owes", () => {
   expect(backlogLine(summary({ date: "2026-09-10", scheduled: 6, open: 3 }))).toBe(
     "2026-09-10 never sealed · 3 of 6 unresolved",
   );
+});
+
+test("the skip bank prints what is spendable out of what was minted", () => {
+  expect(balanceLine({ available: 1, minted: 2 })).toBe("skip bank 1/2");
+  // A held skip is unavailable without being spent: the bank reads down, the
+  // mint does not.
+  expect(balanceLine({ available: 0, minted: 2 })).toBe("skip bank 0/2");
+  expect(balanceLine({ available: 0, minted: 0 })).toBe("skip bank 0/0");
 });
 
 test("a sealed day wears its tally", () => {

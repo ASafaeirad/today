@@ -7,9 +7,10 @@ import type { MarkOutcome, Outcome } from "#domain/outcome";
 
 import { api } from "#convex/_generated/api";
 
-import { errorText, rowStatus, type DaySummary, type Mode } from "./console";
+import { errorText, rowStatus, type BalanceView, type DaySummary, type Mode } from "./console";
 import { useMarkInstance, type DayView, type RosterEntry } from "./ledger";
 import { useBacklog } from "./useBacklog";
+import { useBalance } from "./useBalance";
 import { useRoutinePlan, type RoutinePlan } from "./useRoutinePlan";
 import { useSealCeremony, type SealCeremony } from "./useSealCeremony";
 
@@ -26,8 +27,12 @@ export interface TodayController {
   mark: (entry: RosterEntry, outcome: MarkOutcome) => void;
   plan: RoutinePlan;
   backlog: DaySummary | undefined;
+  /** What a skip costs, and whether there is one to spend. */
+  balance: BalanceView | undefined;
   seal: SealCeremony;
+  /** The last refusal, while the shell is the surface answering for it. */
   notice: string | null;
+  dismissNotice: () => void;
   announcement: string;
 }
 
@@ -70,6 +75,7 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
   const day = useQuery(api.days.get, { date: today });
   const plan = useRoutinePlan();
   const backlog = useBacklog();
+  const balance = useBalance();
   const seal = useSealCeremony();
   const append = useMarkInstance();
 
@@ -156,8 +162,12 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
     mark,
     plan,
     backlog,
+    balance,
     seal,
-    notice,
+    // The ceremony prints its own refusals, so the shell keeps quiet under it
+    // rather than stacking a second copy behind the dialog.
+    notice: seal.date === null ? notice : null,
+    dismissNotice: () => setNotice(null),
     announcement,
   };
 }

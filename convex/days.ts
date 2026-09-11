@@ -11,7 +11,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireSkips } from "./lib/balance";
 import { bumpRev, ensureDay, findDay } from "./lib/days";
 import { ownedMutation, ownedQuery, type OwnerContext } from "./lib/functions";
-import { applyResolution, instancesBetween, instancesOn, resolveCell } from "./lib/instances";
+import { applyResolution, instancesOn, resolveCell } from "./lib/instances";
 import { findDayStats, rewriteDayStats } from "./lib/projections";
 import { countConsecutiveMisses } from "./routines";
 
@@ -75,27 +75,14 @@ export const overview = ownedQuery({
         `Overview of ${args.dates.length} dates is over the limit of ${MAX_EAGER_DAYS}.`,
       );
     }
-    const wanted = new Set(args.dates);
-    const from = args.dates.reduce((a, b) => (a < b ? a : b));
-    const to = args.dates.reduce((a, b) => (a > b ? a : b));
-
-    const days = new Map(
-      (
-        await ctx.db
-          .query("days")
-          .withIndex("by_owner_date", (q) =>
-            q.eq("ownerId", ctx.owner._id).gte("date", from).lte("date", to),
-          )
-          .collect()
-      ).map((day) => [day.date, day]),
-    );
-
     const summaries = new Map(
-      args.dates.map((date) => {
-        const day = days.get(date);
-        return [
-          date,
-          {
+      await Promise.all(
+        [...new Set(args.dates)].map(async (date) => {
+          const [day, instances] = await Promise.all([
+            findDay(ctx, ctx.owner._id, date),
+            instancesOn(ctx, ctx.owner._id, date),
+          ]);
+          const summary = {
             date,
             scheduled: 0,
             open: 0,
@@ -105,19 +92,19 @@ export const overview = ownedQuery({
             state: stateOf(day, date, ctx.today),
             sealed: day?.sealed ?? false,
             closedAt: day?.closedAt ?? null,
-          },
-        ];
-      }),
-    );
+          };
 
-    for (const instance of await instancesBetween(ctx, ctx.owner._id, from, to)) {
-      if (!wanted.has(instance.date)) continue;
-      const summary = summaries.get(instance.date)!;
-      summary.scheduled += 1;
-      const resolved = instance.closedAt !== null || (await hasOutcomeMark(ctx, instance));
-      if (resolved) summary[instance.outcome] += 1;
-      else summary.open += 1;
-    }
+          for (const instance of instances) {
+            summary.scheduled += 1;
+            const resolved = instance.closedAt !== null || (await hasOutcomeMark(ctx, instance));
+            if (resolved) summary[instance.outcome] += 1;
+            else summary.open += 1;
+          }
+
+          return [date, summary] as const;
+        }),
+      ),
+    );
 
     return args.dates.map((date) => summaries.get(date)!);
   },

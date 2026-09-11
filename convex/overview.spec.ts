@@ -69,3 +69,15 @@ test("overview is bounded like every eager read", async () => {
   const tooMany = datesBetween(addDays("2026-09-11", -MAX_EAGER_DAYS), "2026-09-11");
   await expect(as.query(api.days.overview, { dates: tooMany })).rejects.toThrow("limit");
 });
+
+test("overview preserves sparse requested dates", async () => {
+  const { as } = await fixture();
+  const dates = ["2026-09-11", "1900-01-01", "2026-09-11"];
+
+  const rows = await as.query(api.days.overview, { dates });
+
+  expect(rows.map((row) => row.date)).toEqual(dates);
+  expect(rows[0]).toMatchObject({ scheduled: 1, open: 1 });
+  expect(rows[1]).toMatchObject({ scheduled: 0, open: 0 });
+  expect(rows[2]).toEqual(rows[0]);
+});

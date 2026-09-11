@@ -13,7 +13,7 @@ export default defineConfig({
     "*": ["vp check --fix", "cspell"],
   },
   fmt: {
-    ignorePatterns: ["convex/_generated/**", "src/routeTree.gen.ts"],
+    ignorePatterns: [".design-sync/**", "convex/_generated/**", "src/routeTree.gen.ts"],
     sortImports: {
       groups: [
         "type-import",
@@ -33,7 +33,7 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
   },
   lint: defineOxlintConfig({
-    ignorePatterns: ["convex/_generated/**", "src/routeTree.gen.ts"],
+    ignorePatterns: [".design-sync/**", "convex/_generated/**", "src/routeTree.gen.ts"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: {
       "react/only-export-components": "off",

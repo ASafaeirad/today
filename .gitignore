@@ -31,3 +31,17 @@ tsconfig.tsbuildinfo
 
 # Packages
 .tanstack
+
+## Docs
+docs/specs
+
+# design-sync
+.design-sync/sb-reference/
+.design-sync/learnings/
+.design-sync/.cache/
+.design-sync/node_modules
+.design-sync/sb-build.log
+.ds-sync/
+ds-bundle/
+/index.d.ts
+dist/types/

@@ -9,9 +9,9 @@ import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.
 
 afterEach(realTime);
 
-async function fixture() {
+async function fixture(documentsReadLimit?: number) {
   atDate("2026-09-09");
-  const as = await signIn(initConvexTest());
+  const as = await signIn(initConvexTest(documentsReadLimit));
   await as.mutation(api.owners.ensure, { timezone: "UTC" });
   const { routineId } = await as.mutation(api.routines.create, {
     name: "Read",
@@ -70,9 +70,22 @@ test("overview is bounded like every eager read", async () => {
   await expect(as.query(api.days.overview, { dates: tooMany })).rejects.toThrow("limit");
 });
 
-test("overview preserves sparse requested dates", async () => {
-  const { as } = await fixture();
+test("overview does not scan days between sparse requested dates", async () => {
+  const { as } = await fixture(100);
   const dates = ["2026-09-11", "1900-01-01", "2026-09-11"];
+
+  await as.run(async (ctx) => {
+    const owner = await ctx.db.query("owners").unique();
+    for (const date of datesBetween("2026-05-01", "2026-08-31")) {
+      await ctx.db.insert("days", {
+        ownerId: owner!._id,
+        date,
+        closedAt: null,
+        rev: 0,
+        closeKey: null,
+      });
+    }
+  });
 
   const rows = await as.query(api.days.overview, { dates });
 

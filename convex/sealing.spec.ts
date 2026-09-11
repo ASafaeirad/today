@@ -102,6 +102,19 @@ test("past days remain editable and appear in the backlog until sealed", async (
   expect(await as.query(api.days.backlog, {})).not.toContain(date);
 });
 
+test("the backlog skips the empty days a pause leaves behind", async () => {
+  const { as, routineId, date } = await fixture();
+
+  // Pause from tomorrow, so 09-12 onwards are pinned with an empty roster.
+  await as.mutation(api.schedules.set, { routineId, dowMask: 0 });
+  atDate("2026-09-20");
+  await as.mutation(api.owners.sweep, {});
+
+  // The paused stretch is history, not a nag: only the day that carried a
+  // roster is still owed a verdict.
+  expect(await as.query(api.days.backlog, {})).toEqual([date]);
+});
+
 test("creating a routine after sealing today starts it tomorrow", async () => {
   const { as, routineId, date } = await fixture();
   await as.mutation(api.marks.append, { date, routineId, outcome: "done" });

@@ -5,7 +5,7 @@ import type { LocalDate } from "#domain/date";
 import { MAX_EAGER_DAYS, MAX_EAGER_FOLDS } from "#domain/constants";
 import { shouldSuggestRetirement } from "#domain/retirement";
 
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 import { requireSkips } from "./lib/balance";
@@ -260,7 +260,15 @@ async function handleAlreadyClosedDay(
   };
 }
 
-/** Open history stays available without an expiry date. */
+/**
+ * Open history stays available without an expiry date.
+ *
+ * The sweep pins a Day row for every date it passes, roster or no roster, so a
+ * pause or a lapse leaves a run of empty days behind it. An empty day has
+ * nothing to resolve and nothing worth sealing — it is history, not a nag — and
+ * leaving it here would let a long enough run fill any bounded window the
+ * caller takes off the front and hide every day that does owe a verdict.
+ */
 export const backlog = ownedQuery({
   args: {},
   handler: async (ctx) => {
@@ -269,9 +277,22 @@ export const backlog = ownedQuery({
       .withIndex("by_owner_date", (q) => q.eq("ownerId", ctx.owner._id).lt("date", ctx.today))
       .order("desc")
       .collect();
-    return days.filter((day) => day.closedAt === null).map((day) => day.date);
+    const open = days.filter((day) => day.closedAt === null);
+    const dates = await Promise.all(
+      open.map(async (day) => ((await hasRoster(ctx, ctx.owner._id, day.date)) ? day.date : null)),
+    );
+    return dates.filter((date) => date !== null);
   },
 });
+
+/** One index lookup: whether the sweep placed anything on this date at all. */
+async function hasRoster(ctx: QueryCtx, ownerId: Id<"owners">, date: LocalDate): Promise<boolean> {
+  const first = await ctx.db
+    .query("instances")
+    .withIndex("by_owner_date", (q) => q.eq("ownerId", ownerId).eq("date", date))
+    .first();
+  return first !== null;
+}
 
 async function validateSeal(
   ctx: MutationCtx,

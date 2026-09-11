@@ -93,15 +93,8 @@ export const close = ownedMutation({
     if (args.date > ctx.today) throw new Error("Cannot close a future day");
 
     const day = await ensureDay(ctx, ctx.owner._id, args.date);
-    if (day.closedAt !== null) {
-      return {
-        date: args.date,
-        closed: true,
-        alreadyClosed: true,
-        rev: day.rev,
-        suggestions: [] as { routineId: string; consecutive: number }[],
-      };
-    }
+    const closed = await handleAlreadyClosedDay(ctx, day, args);
+    if (closed) return closed;
 
     const instances = await instancesOn(ctx, ctx.owner._id, args.date);
     if (instances.length > MAX_EAGER_FOLDS) {
@@ -171,6 +164,37 @@ export const close = ownedMutation({
     return { date: args.date, closed: true, alreadyClosed: false, rev, suggestions };
   },
 });
+
+async function handleAlreadyClosedDay(
+  ctx: MutationCtx,
+  day: Doc<"days">,
+  args: { date: string; seal?: boolean; expectedRev?: number; closingNote?: string },
+) {
+  if (day.closedAt === null) return null;
+  if (args.seal && !day.sealed) {
+    const instances = await instancesOn(ctx, ctx.owner._id, args.date);
+    await validateSeal(ctx, day, instances, args);
+    const rev = await bumpRev(ctx, day);
+    await ctx.db.patch(day._id, {
+      sealed: true,
+      closingNote: args.closingNote ?? "",
+    });
+    return {
+      date: args.date,
+      closed: true,
+      alreadyClosed: true,
+      rev,
+      suggestions: [] as { routineId: string; consecutive: number }[],
+    };
+  }
+  return {
+    date: args.date,
+    closed: true,
+    alreadyClosed: true,
+    rev: day.rev,
+    suggestions: [] as { routineId: string; consecutive: number }[],
+  };
+}
 
 /** Open history stays available without an expiry date. */
 export const backlog = ownedQuery({

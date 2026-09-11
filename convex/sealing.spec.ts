@@ -64,6 +64,33 @@ test("sealing checks the reviewed revision and permanently keeps outcomes and no
   expect(sealed.roster[0]?.outcome).toBe("missed");
 });
 
+test("a closed day can be sealed after another review", async () => {
+  const { as, routineId, date } = await fixture();
+  await as.mutation(api.marks.append, { date, routineId, outcome: "done" });
+  await as.mutation(api.days.close, { date });
+  const reviewed = await as.query(api.days.get, { date });
+  expect(reviewed.sealed).toBe(false);
+
+  await as.mutation(api.marks.append, { date, routineId, outcome: "missed" });
+  await expect(
+    as.mutation(api.days.close, { date, seal: true, expectedRev: reviewed.rev }),
+  ).rejects.toThrow("changed");
+
+  const current = await as.query(api.days.get, { date });
+  await as.mutation(api.days.close, {
+    date,
+    seal: true,
+    expectedRev: current.rev,
+    closingNote: "Reviewed after close.",
+  });
+  const sealed = await as.query(api.days.get, { date });
+  expect(sealed.sealed).toBe(true);
+  expect(sealed.closingNote).toBe("Reviewed after close.");
+  await expect(as.mutation(api.marks.append, { date, routineId, outcome: "done" })).rejects.toThrow(
+    "permanent",
+  );
+});
+
 test("past days remain editable and appear in the backlog until sealed", async () => {
   const { as, routineId, date } = await fixture();
   atDate("2026-09-15");

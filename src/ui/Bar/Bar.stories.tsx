@@ -27,7 +27,7 @@ export const Matrix = meta.story({
             </Bar>
           ) : (
             <Bar variant={variant}>
-              <BarBrand>VIGIL</BarBrand>
+              <BarBrand>TODAY</BarBrand>
               <BarItem label="day">2026-08-28</BarItem>
               <BarItem label="res" tone="done">
                 6/8

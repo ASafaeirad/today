@@ -117,13 +117,19 @@ interface ProgressLineProps {
   resolved: number;
   scheduled: number;
   open: number;
+  /** False on a day with nothing to seal, and on one already sealed. */
+  canSeal: boolean;
   onSeal: () => void;
 }
 
 /** The day's progress, written as the command that would finish it. */
-export function TrackLine({ resolved, scheduled, open, onSeal }: ProgressLineProps) {
+export function TrackLine({ resolved, scheduled, open, canSeal, onSeal }: ProgressLineProps) {
   return (
-    <CommandLine action={open > 0 ? "seal --resolve-first" : "seal --now"} onClick={onSeal}>
+    <CommandLine
+      action={open > 0 ? "seal --resolve-first" : "seal --now"}
+      disabled={!canSeal}
+      onClick={onSeal}
+    >
       <CommandLineValue>
         {resolved}/{scheduled}
       </CommandLineValue>{" "}

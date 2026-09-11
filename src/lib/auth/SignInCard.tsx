@@ -16,7 +16,7 @@ export function SignInCard({ redirectTo = "/" }: Props) {
     <Panel className="mx-auto w-full max-w-sm">
       <Bar variant="accent" placement="none" className="justify-between">
         <span className="px-2.5 py-1.25">SIGN IN</span>
-        <span className="px-2.5 py-1.25">VIGIL</span>
+        <span className="px-2.5 py-1.25">TODAY</span>
       </Bar>
       <PanelBody>
         <Heading as="h1" size="base" prompt>

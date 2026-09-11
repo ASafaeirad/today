@@ -28,7 +28,7 @@ export function TopBar({ selected, today, backlog, readOnly }: TopBarProps) {
   const resolved = today ? today.scheduled - today.open : 0;
   return (
     <Bar>
-      <BarBrand>VIGIL</BarBrand>
+      <BarBrand>TODAY</BarBrand>
       <BarItem label="day">{selected}</BarItem>
       <BarItem label="res" tone="done">
         {resolved}/{today?.scheduled ?? 0}

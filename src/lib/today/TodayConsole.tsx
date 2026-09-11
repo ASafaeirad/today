@@ -2,71 +2,91 @@ import { useRef } from "react";
 
 import type { LocalDate } from "#domain/date";
 
-import { TabPanel, Tabs } from "#ui";
-
-import { ConsoleFooter, DayStrip, Notice, ProgressLine, TopBar } from "./ConsoleChrome";
+import { rowStatus, sealStamp } from "./console";
+import {
+  BacklogBar,
+  ConsoleFooter,
+  Notice,
+  PlanBanner,
+  PlanLine,
+  SealStamp,
+  TopBar,
+  TrackLine,
+} from "./ConsoleChrome";
 import { DayScreen } from "./DayScreen";
+import { PlanScreen } from "./PlanScreen";
 import { SealDialog } from "./SealDialog";
 import { useTodayController } from "./useTodayController";
 
-interface Props {
-  today: LocalDate;
-  timezone: string;
-}
-
-export function TodayConsole({ today, timezone }: Props) {
+/**
+ * Two modes over one day. Track is the hot path — mark and seal, never edit the
+ * list. Plan is where routines are created and retired, and it can do neither
+ * of the other two.
+ */
+export function TodayConsole({ today }: { today: LocalDate }) {
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const listRef = useRef<HTMLDivElement>(null);
-  const c = useTodayController(today, { rowRefs, listRef });
+  const c = useTodayController(today, { rowRefs });
+
+  const planning = c.mode === "plan";
+  const { backlog } = c;
+  const scheduled = c.roster.length;
+  const open = c.roster.filter((entry) => rowStatus(entry) === "open").length;
+  const done = c.roster.filter((entry) => rowStatus(entry) === "done").length;
+  const canSeal = c.day !== undefined && scheduled > 0;
+  const beginSeal = () => {
+    if (canSeal) c.seal.begin(today);
+  };
 
   return (
-    <Tabs
-      value={c.selected}
-      onValueChange={(value) => c.selectDate(value as LocalDate)}
-      className="grid h-dvh grid-terminal overflow-hidden"
-    >
+    <div className="grid h-dvh grid-terminal overflow-hidden bg-background text-foreground">
       <div>
-        <TopBar
-          selected={c.selected}
-          today={c.strip.today}
-          backlog={c.strip.backlog}
-          readOnly={c.sealed}
-        />
-        <ProgressLine today={c.strip.today} backlog={c.strip.backlog} onJump={() => c.jump()} />
+        <TopBar date={today} mode={c.mode} sealed={c.sealed} onMode={(next) => c.enterMode(next)} />
+        {planning ? <PlanBanner /> : null}
+        {!planning && backlog ? (
+          <BacklogBar summary={backlog} onResolve={() => c.seal.begin(backlog.date)} />
+        ) : null}
         {c.notice ? <Notice text={c.notice} /> : null}
-        <DayStrip ref={listRef} dates={c.strip.dates} summaries={c.strip.summaries} today={today} />
+        <div className="px-2.5 pt-2.5">
+          {planning ? (
+            <PlanLine count={c.plan.routines?.length ?? 0} />
+          ) : (
+            <TrackLine
+              resolved={scheduled - open}
+              scheduled={scheduled}
+              open={open}
+              onSeal={beginSeal}
+            />
+          )}
+        </div>
       </div>
-      <TabPanel value={c.selected} className="relative min-h-0 overflow-auto">
-        <DayScreen
-          day={c.day}
-          date={c.selected}
-          timezone={timezone}
-          cursor={c.cursor}
-          rowRefs={rowRefs}
-          onCursor={(index) => c.setCursor(index)}
-          onMark={(entry, outcome) => c.mark(entry, outcome)}
+      <div className="flex min-h-0 flex-col p-2.5">
+        {planning ? (
+          <PlanScreen plan={c.plan} onDone={() => c.enterMode("track")} />
+        ) : (
+          <DayScreen
+            day={c.day}
+            date={today}
+            cursor={c.cursor}
+            rowRefs={rowRefs}
+            onCursor={(index) => c.setCursor(index)}
+            onMark={(entry, outcome) => c.mark(entry, outcome)}
+          />
+        )}
+      </div>
+      <div>
+        {c.sealed && !planning ? <SealStamp text={sealStamp(today, done, scheduled)} /> : null}
+        <ConsoleFooter
+          mode={c.mode}
+          sealed={c.sealed}
+          marking={c.marking}
+          canSeal={canSeal}
+          onSeal={beginSeal}
         />
-      </TabPanel>
-      <ConsoleFooter
-        sealed={c.sealed}
-        empty={c.roster.length === 0}
-        ready={c.day !== undefined}
-        onSeal={() => c.beginSeal()}
-      />
-      <output aria-live="polite" className="sr-only">
-        {c.announcement}
-      </output>
-      {c.day && c.seal ? (
-        <SealDialog
-          day={c.day}
-          stage={c.seal}
-          open
-          onStage={(stage) => c.setSeal(stage)}
-          onMark={(entry, outcome) => c.mark(entry, outcome)}
-          onLock={(note) => c.lock(note)}
-          onClose={() => c.endSeal()}
-        />
-      ) : null}
-    </Tabs>
+        <output aria-live="polite" className="sr-only">
+          {c.announcement}
+        </output>
+      </div>
+      {c.seal.date !== null ? <SealDialog seal={c.seal} /> : null}
+    </div>
   );
 }

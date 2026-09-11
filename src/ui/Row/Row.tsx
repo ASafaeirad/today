@@ -4,14 +4,27 @@ import { cn } from "#lib/cn";
 
 import { Badge, type BadgeProps } from "../Badge/Badge.tsx";
 
-const rowGrid = "grid grid-record sm:grid-record-full items-center px-2.5";
+const rowGridVariants = cva("grid items-center px-2.5", {
+  variants: {
+    /* The full record, or the bare listing a queue of names is. */
+    layout: {
+      record: "grid-record sm:grid-record-full",
+      queue: "grid-record",
+    },
+  },
+  defaultVariants: {
+    layout: "record",
+  },
+});
 
-export function RowHeader({ className, ...props }: React.ComponentProps<"div">) {
+export type RowHeaderProps = React.ComponentProps<"div"> & VariantProps<typeof rowGridVariants>;
+
+export function RowHeader({ className, layout = "record", ...props }: RowHeaderProps) {
   return (
     <div
       data-slot="row-header"
       className={cn(
-        rowGrid,
+        rowGridVariants({ layout }),
         "sticky top-0 z-1 border-b border-border bg-background py-0.75 text-xs tracking-widest text-subtle-foreground uppercase",
         className,
       )}
@@ -40,18 +53,25 @@ const rowVariants = cva(
 );
 
 export type RowProps = React.ComponentProps<"div"> &
-  VariantProps<typeof rowVariants> & {
+  VariantProps<typeof rowVariants> &
+  VariantProps<typeof rowGridVariants> & {
     /** The record the block cursor is parked on. */
     current?: boolean;
   };
 
-export function Row({ className, status = "open", current = false, ...props }: RowProps) {
+export function Row({
+  className,
+  status = "open",
+  layout = "record",
+  current = false,
+  ...props
+}: RowProps) {
   return (
     <div
       data-slot="row"
       data-status={status}
       aria-current={current || undefined}
-      className={cn(rowGrid, rowVariants({ status }), "min-h-7.5", className)}
+      className={cn(rowGridVariants({ layout }), rowVariants({ status }), "min-h-7.5", className)}
       {...props}
     />
   );
@@ -108,4 +128,4 @@ export function RowActions({ className, ...props }: React.ComponentProps<"div">)
   );
 }
 
-export { rowVariants };
+export { rowGridVariants, rowVariants };

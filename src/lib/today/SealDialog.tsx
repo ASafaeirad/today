@@ -1,13 +1,12 @@
-import { valibotResolver } from "@hookform/resolvers/valibot";
-import { useHotkey, useHotkeys } from "@tanstack/react-hotkeys";
-import { useForm } from "react-hook-form";
-import * as v from "valibot";
+import { useHotkeys } from "@tanstack/react-hotkeys";
+import { useEffect, useRef } from "react";
 
 import type { Outcome } from "#domain/outcome";
 
 import {
+  BarItem,
+  BarSpacer,
   Button,
-  ButtonGroup,
   Dialog,
   DialogBody,
   DialogClose,
@@ -16,15 +15,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Field,
-  FieldError,
-  FieldLabel,
-  Input,
   Kbd,
-  Meter,
-  MeterIndicator,
-  MeterLabel,
-  MeterTrack,
+  Panel,
+  Row,
+  RowIndex,
+  RowName,
   Table,
   TableBody,
   TableCell,
@@ -32,152 +27,182 @@ import {
   Text,
 } from "#ui";
 
-import type { DayView, RosterEntry } from "./DayScreen";
+import type { DayView, RosterEntry } from "./ledger";
+import type { SealCeremony } from "./useSealCeremony";
 
-import { OPS, errorText, pad, rowStatus } from "./console";
+import { OPS, pad, rowStatus } from "./console";
 
-export type SealStage = "resolve" | "recap" | "note" | "sealed";
-
-interface Props {
-  day: DayView;
-  /** Where the ceremony is, as requested; `resolve` falls through once nothing is open. */
-  stage: SealStage;
-  open: boolean;
-  onStage: (stage: SealStage) => void;
-  onMark: (entry: RosterEntry, outcome: Outcome) => void;
-  onLock: (note: string) => Promise<void>;
-  /** Escape, the backdrop, or RETURN after the lock. */
-  onClose: () => void;
-}
-
-function Cell({ children, tone }: { children: React.ReactNode; tone?: Outcome | "neutral" }) {
-  return (
-    <TableCell tone={tone ?? "inherit"} align={tone && tone !== "neutral" ? "end" : "start"}>
-      {children}
-    </TableCell>
-  );
-}
-
-export function SealDialog({ day, stage, open, onStage, onMark, onLock, onClose }: Props) {
-  const openRows = day.roster.filter((entry) => rowStatus(entry) === "open");
-  const effective: SealStage = stage === "resolve" && openRows.length === 0 ? "recap" : stage;
-  const next = openRows[0];
+/**
+ * The ceremony, in two acts: resolve every open line one at a time, then read
+ * the record back and lock it. Nothing is written to the day until the lock, so
+ * escape at any point leaves it exactly as open as it was.
+ */
+export function SealDialog({ seal }: { seal: SealCeremony }) {
+  const { day } = seal;
+  const resolving = seal.stage === "resolve";
+  const total = day?.roster.length ?? 0;
+  // The last word answers to the return key, so the return key has to land on
+  // it — not on whatever the dialog would otherwise focus first.
+  const lockRef = useRef<HTMLButtonElement>(null);
 
   return (
     <Dialog
-      open={open}
+      open
       onOpenChange={(isOpen) => {
-        if (!isOpen) onClose();
+        if (!isOpen) seal.cancel();
       }}
     >
-      <DialogContent aria-label={`Seal ${day.date}`}>
-        <DialogHeader>
-          <span className="px-2.5 py-1.25">SEAL {day.date}</span>
-          <span className="px-2.5 py-1.25">
-            {effective === "resolve" && `STAGE 1/3 · RESOLVE · ${openRows.length} LEFT`}
-            {effective === "recap" && "STAGE 2/3 · RECAP · READ ONLY"}
-            {effective === "note" && "STAGE 3/3 · NOTE · REQUIRED"}
-            {effective === "sealed" && "SEALED"}
-          </span>
-        </DialogHeader>
-        {effective === "resolve" && next && (
-          <ResolveStage day={day} next={next} open={open} onMark={onMark} />
-        )}
-        {effective === "recap" && <RecapStage day={day} open={open} onStage={onStage} />}
-        {effective === "note" && <NoteStage onLock={onLock} />}
-        {effective === "sealed" && <SealedStage day={day} onClose={onClose} />}
+      <DialogContent
+        className="flex items-end justify-center bg-transparent p-3 data-open:animate-cut sm:items-center sm:p-6"
+        initialFocus={resolving ? undefined : lockRef}
+      >
+        <Panel className="max-h-full w-full max-w-115 bg-background">
+          <DialogHeader>
+            <span className="px-2.5 py-1.25">SEAL {seal.date}</span>
+            <span className="px-2.5 py-1.25">
+              {day === undefined
+                ? "OPENING"
+                : resolving
+                  ? `RESOLVE · ${seal.pending.length} LEFT`
+                  : "LOCK · FINAL"}
+            </span>
+          </DialogHeader>
+          {day === undefined ? (
+            <DialogBody aria-busy="true">
+              <DialogTitle>seal --open</DialogTitle>
+              <DialogDescription>reading the record ...</DialogDescription>
+            </DialogBody>
+          ) : resolving ? (
+            <ResolveStage seal={seal} day={day} total={total} />
+          ) : (
+            <LockStage seal={seal} day={day} lockRef={lockRef} />
+          )}
+        </Panel>
       </DialogContent>
     </Dialog>
   );
 }
 
-interface ResolveStageProps {
-  day: DayView;
-  next: RosterEntry;
-  open: boolean;
-  onMark: (entry: RosterEntry, outcome: Outcome) => void;
+function Refusal({ text }: { text: string | null }) {
+  if (text === null) return null;
+  return (
+    <Text as="p" tone="record" className="tone-missed mt-2.5" role="alert">
+      ! {text}
+    </Text>
+  );
 }
 
-/** Stage 1: the same three letters the row toggles use, one cell at a time. */
-function ResolveStage({ day, next, open, onMark }: ResolveStageProps) {
+interface StageProps {
+  seal: SealCeremony;
+  day: DayView;
+}
+
+/** Act one: the same three letters the row toggles use, one line at a time. */
+function ResolveStage({ seal, day, total }: StageProps & { total: number }) {
   useHotkeys(
-    [
-      { hotkey: "D", callback: () => onMark(next, "done") },
-      { hotkey: "M", callback: () => onMark(next, "missed") },
-      { hotkey: "S", callback: () => onMark(next, "skipped") },
-    ],
-    { enabled: open },
+    OPS.map((op) => ({ hotkey: op.key, callback: () => seal.resolve(op.value) })),
+    { enabled: seal.pending.length > 0 },
   );
 
   return (
     <>
-      <DialogBody>
-        <DialogTitle>resolve --interactive</DialogTitle>
-        <DialogDescription className="mb-3">
-          line {pad(day.roster.indexOf(next) + 1)} <Text tone="inverted">{next.name}</Text>
+      <DialogBody className="max-w-none">
+        <DialogTitle className="mb-1.5">resolve --interactive</DialogTitle>
+        <DialogDescription className="mb-2">
+          nothing seals until every line has a verdict.
         </DialogDescription>
-        <ButtonGroup attached={false} aria-label={`${next.name} outcome`}>
+        <div className="no-scrollbar mb-2.5 max-h-55 overflow-x-hidden overflow-y-auto border border-border">
+          {seal.pending.map((entry, index) => (
+            <PendingRow key={entry.instanceId} day={day} entry={entry} current={index === 0} />
+          ))}
+        </div>
+        <div className="joined flex">
           {OPS.map((op) => (
-            <Button key={op.value} size="lg" onClick={() => onMark(next, op.value)}>
+            <Button
+              key={op.value}
+              size="lg"
+              className="min-h-12 flex-1"
+              onClick={() => seal.resolve(op.value)}
+            >
               <Kbd variant="hint">{op.key}</Kbd>
               {op.value}
             </Button>
           ))}
-        </ButtonGroup>
+        </div>
+        <Refusal text={seal.refusal} />
       </DialogBody>
       <DialogFooter>
-        <DialogClose
-          render={
-            <Button variant="ghost">
-              <Kbd>ESC</Kbd>
-              cancel — nothing locked
-            </Button>
-          }
-        />
+        <DialogClose render={<Button variant="ghost">esc — nothing locked</Button>} />
+        <BarSpacer />
+        <BarItem tone="muted" divided={false}>
+          {total - seal.pending.length}/{total}
+        </BarItem>
       </DialogFooter>
     </>
   );
 }
 
-interface RecapStageProps {
+interface PendingRowProps {
   day: DayView;
-  open: boolean;
-  onStage: (stage: SealStage) => void;
+  entry: RosterEntry;
+  current: boolean;
 }
 
-/** Stage 2: read the recap, then commit to writing the note. */
-function RecapStage({ day, open, onStage }: RecapStageProps) {
-  useHotkey("Enter", () => onStage("note"), { enabled: open });
+function PendingRow({ day, entry, current }: PendingRowProps) {
+  return (
+    <Row layout="queue" status="open" current={current}>
+      <RowIndex>{pad(day.roster.indexOf(entry) + 1)}</RowIndex>
+      <RowName>{entry.name}</RowName>
+    </Row>
+  );
+}
 
-  const counts = {
-    done: day.roster.filter((entry) => rowStatus(entry) === "done").length,
-    missed: day.roster.filter((entry) => rowStatus(entry) === "missed").length,
-    skipped: day.roster.filter((entry) => rowStatus(entry) === "skipped").length,
-  };
+function tally(day: DayView, outcome: Outcome): number {
+  return day.roster.filter((entry) => rowStatus(entry) === outcome).length;
+}
+
+interface LockStageProps extends StageProps {
+  lockRef: React.RefObject<HTMLButtonElement | null>;
+}
+
+/** Act two: the record as it will stand for good, and the last word on it. */
+function LockStage({ seal, day, lockRef }: LockStageProps) {
+  // Reached by resolving the last line, the stage swaps under a focus that was
+  // on a button which no longer exists. The return key has one target here.
+  useEffect(() => {
+    lockRef.current?.focus();
+  }, [lockRef]);
 
   return (
     <>
-      <DialogBody>
-        <DialogTitle>recap --all</DialogTitle>
+      <DialogBody className="max-w-none">
+        <DialogTitle className="mb-1.5">seal --final</DialogTitle>
         <Table>
           <TableBody>
             {day.roster.map((entry, index) => {
               const status = rowStatus(entry);
               return (
                 <TableRow key={entry.instanceId}>
-                  <Cell tone="neutral">{pad(index + 1)}</Cell>
-                  <Cell>{entry.name}</Cell>
-                  <Cell tone={status === "open" ? "neutral" : status}>{status.toUpperCase()}</Cell>
+                  <TableCell tone="neutral">{pad(index + 1)}</TableCell>
+                  <TableCell>{entry.name}</TableCell>
+                  <TableCell tone={status === "open" ? "neutral" : status} align="end">
+                    {status.toUpperCase()}
+                  </TableCell>
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
-        <Text tone="record" className="tone-missed mt-2.5 block">
-          {counts.done} done / {counts.missed} missed / {counts.skipped} skipped
+        <Text tone="record" className="mt-2.5 block">
+          {tally(day, "done")} done / {tally(day, "missed")} missed / {tally(day, "skipped")}{" "}
+          skipped
         </Text>
+        <Text tone="record" className="tone-missed mt-2.5 block">
+          ! LOCK IS IRREVERSIBLE. THE DAY CANNOT BE REOPENED.
+        </Text>
+        <Refusal text={seal.refusal} />
       </DialogBody>
-      <DialogFooter className="justify-between">
+      <DialogFooter>
         <DialogClose
           render={
             <Button variant="ghost">
@@ -186,110 +211,18 @@ function RecapStage({ day, open, onStage }: RecapStageProps) {
             </Button>
           }
         />
-        <Button variant="ghost" onClick={() => onStage("note")}>
-          <Kbd>&#8629;</Kbd>
-          confirm recap
-        </Button>
-      </DialogFooter>
-    </>
-  );
-}
-
-function SealedStage({ day, onClose }: { day: DayView; onClose: () => void }) {
-  return (
-    <div className="grid h-full place-content-center gap-3 p-5 text-center">
-      <Meter value={100} className="w-72 items-center" aria-label="Record locked">
-        <MeterTrack>
-          <MeterIndicator animated />
-        </MeterTrack>
-        <MeterLabel className="text-lg font-bold tracking-brand text-accent">
-          RECORD LOCKED
-        </MeterLabel>
-      </Meter>
-      <Text as="p" tone="muted">
-        {day.date} · {day.roster.length} routines · note stored
-      </Text>
-      <div>
-        {/* The dialog already traps focus; landing it on the one exit is the point. */}
-        {/* oxlint-disable-next-line jsx-a11y/no-autofocus */}
-        <Button variant="accent" size="lg" autoFocus onClick={onClose}>
-          RETURN
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-const noteSchema = v.object({
-  note: v.pipe(
-    v.string(),
-    v.trim(),
-    v.nonEmpty("A closing note is required."),
-    v.maxLength(2000, "Closing note must be 2000 characters or fewer."),
-  ),
-});
-
-type NoteForm = v.InferOutput<typeof noteSchema>;
-
-/** Stage 3: the one field the ceremony requires before it will lock. */
-function NoteStage({ onLock }: { onLock: (note: string) => Promise<void> }) {
-  const form = useForm<NoteForm>({
-    resolver: valibotResolver(noteSchema),
-    defaultValues: { note: "" },
-    mode: "onChange",
-  });
-  const { errors, isSubmitting, isValid } = form.formState;
-
-  const submit = form.handleSubmit(async ({ note }) => {
-    try {
-      await onLock(note);
-    } catch (error) {
-      form.setError("root", { message: errorText(error) });
-    }
-  });
-
-  return (
-    <form onSubmit={submit} className="contents">
-      <DialogBody>
-        <DialogTitle>note --one-line</DialogTitle>
-        <Field name="note" invalid={errors.note !== undefined}>
-          <FieldLabel>closing note</FieldLabel>
-          {/* The dialog already traps focus; the note is the only field in it. */}
-          <Input
-            sigil=">"
-            size="lg"
-            // oxlint-disable-next-line jsx-a11y/no-autofocus
-            autoFocus
-            autoComplete="off"
-            placeholder="closing note"
-            invalid={errors.note !== undefined}
-            {...form.register("note")}
-          />
-          <FieldError match={errors.note !== undefined}>{errors.note?.message}</FieldError>
-        </Field>
-        <Text tone="record" className="tone-missed mt-2.5 block">
-          ! LOCK IS IRREVERSIBLE. THE DAY CANNOT BE REOPENED.
-        </Text>
-        {errors.root?.message ? (
-          <Text as="p" tone="record" className="tone-missed mt-2.5" role="alert">
-            ! {errors.root.message}
-          </Text>
-        ) : null}
-      </DialogBody>
-      <DialogFooter className="justify-between">
-        <DialogClose
-          render={
-            <Button variant="ghost" type="button">
-              <Kbd>ESC</Kbd>
-              cancel
-            </Button>
-          }
-        />
-        <Button variant="accent" type="submit" disabled={!isValid} loading={isSubmitting}>
+        <BarSpacer />
+        <Button
+          ref={lockRef}
+          variant="accent"
+          className="border-l border-border"
+          loading={seal.locking}
+          onClick={() => seal.lock()}
+        >
           <Kbd>&#8629;</Kbd>
           LOCK
         </Button>
       </DialogFooter>
-    </form>
+    </>
   );
 }

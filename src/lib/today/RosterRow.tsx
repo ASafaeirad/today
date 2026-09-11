@@ -1,6 +1,6 @@
-import type { Outcome } from "#domain/outcome";
+import type { MarkOutcome } from "#domain/outcome";
 
-import { Kbd, Row, RowActions, RowIndex, RowName, RowStatus, Toggle, ToggleGroup } from "#ui";
+import { Kbd, Row, RowActions, RowIndex, RowName, RowStatus, Text, Toggle, ToggleGroup } from "#ui";
 
 import { OPS, pad, type RowStatus as Status } from "./console";
 
@@ -12,7 +12,7 @@ interface Props {
   /** A sealed day is read-only: the keys still print, they just no longer work. */
   sealed: boolean;
   onFocus: () => void;
-  onMark: (outcome: Outcome | null) => void;
+  onMark: (outcome: MarkOutcome) => void;
   ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -26,27 +26,33 @@ export function RosterRow({ index, name, status, current, sealed, onFocus, onMar
         {status}
       </RowStatus>
       <RowActions>
-        <ToggleGroup
-          className="justify-stretch sm:justify-end"
-          aria-label={`${name} outcome`}
-          disabled={sealed}
-          value={status === "open" ? [] : [status]}
-          onValueChange={(next) => onMark((next[0] as Outcome | undefined) ?? null)}
-        >
-          {OPS.map((op) => (
-            <Toggle
-              key={op.value}
-              value={op.value}
-              tone={op.value}
-              aria-label={op.value}
-              disabled={sealed}
-              className="flex-1 sm:flex-none"
-            >
-              <Kbd variant="hint">{op.key}</Kbd>
-              {op.value}
-            </Toggle>
-          ))}
-        </ToggleGroup>
+        {sealed ? (
+          <Text tone="subtle" size="xs" className="block text-right">
+            locked
+          </Text>
+        ) : (
+          <ToggleGroup
+            className="justify-stretch sm:justify-end"
+            aria-label={`${name} outcome`}
+            value={status === "open" ? [] : [status]}
+            onValueChange={(next) => onMark((next[0] as MarkOutcome | undefined) ?? null)}
+          >
+            {OPS.map((op) => (
+              <Toggle
+                key={op.value}
+                value={op.value}
+                tone={op.value}
+                aria-label={op.value}
+                className="min-h-11 flex-1 sm:min-h-7 sm:flex-none"
+              >
+                <Kbd variant="hint" className="hidden sm:inline">
+                  {op.key}
+                </Kbd>
+                {op.value}
+              </Toggle>
+            ))}
+          </ToggleGroup>
+        )}
       </RowActions>
     </Row>
   );

@@ -6,9 +6,12 @@
 import type { Outcome } from "#domain/outcome";
 
 import { MAX_EAGER_DAYS } from "#domain/constants";
-import { addDays, dayOfWeek, type LocalDate } from "#domain/date";
+import { dayOfWeek, type LocalDate } from "#domain/date";
 
 export type RowStatus = Outcome | "open";
+
+/** Track marks and seals the day; plan edits the list and does neither. */
+export type Mode = "track" | "plan";
 
 export interface DaySummary {
   date: LocalDate;
@@ -21,11 +24,6 @@ export interface DaySummary {
   sealed: boolean;
 }
 
-export interface SlotStatus {
-  text: string;
-  tone: "inherit" | "done" | "seal";
-}
-
 /** The three keys, in the order the footer legend prints them. */
 export const OPS = [
   { value: "done", key: "D" },
@@ -33,64 +31,16 @@ export const OPS = [
   { value: "skipped", key: "S" },
 ] as const satisfies readonly { value: Outcome; key: string }[];
 
-const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
-/** How many recent dates the strip always shows, today included. */
-export const STRIP_LENGTH = 7;
-
-/** `2026-08-28 FRI` */
+/** `2026-09-11 · fri` — the date the top bar carries. */
 export function dayLabel(date: LocalDate): string {
-  return `${date} ${WEEKDAYS[dayOfWeek(date)]}`;
+  return `${date} · ${WEEKDAYS[dayOfWeek(date)]}`;
 }
 
-/** `TODAY`, or `27 THU` for any other date. */
-export function slotLabel(date: LocalDate, today: LocalDate): string {
-  if (date === today) return "TODAY";
-  return `${date.slice(8)} ${WEEKDAYS[dayOfWeek(date)]}`;
-}
-
-/** Today and the dates before it, newest first. */
-export function recentDates(today: LocalDate, length = STRIP_LENGTH): LocalDate[] {
-  return Array.from({ length }, (_, offset) => addDays(today, -offset));
-}
-
-/**
- * The dates worth asking about: the recent window plus every open past date,
- * newest first, capped at what one eager read may cover.
- */
-export function stripDates(
-  today: LocalDate,
-  backlog: readonly LocalDate[],
-  limit = MAX_EAGER_DAYS,
-): LocalDate[] {
-  const dates = new Set(recentDates(today));
-  for (const date of backlog) if (date < today) dates.add(date);
-  return [...dates].sort((a, b) => (a > b ? -1 : a < b ? 1 : 0)).slice(0, limit);
-}
-
-/**
- * Which of those dates earn a slot. The recent window always does; an older
- * date only while something on it still needs the owner.
- */
-export function visibleDates(
-  dates: readonly LocalDate[],
-  summaries: ReadonlyMap<LocalDate, DaySummary>,
-  today: LocalDate,
-): LocalDate[] {
-  const recent = new Set(recentDates(today));
-  return dates.filter((date) => {
-    if (recent.has(date)) return true;
-    const summary = summaries.get(date);
-    return summary !== undefined && summary.scheduled > 0 && !summary.sealed;
-  });
-}
-
-export function slotStatus(summary: DaySummary | undefined): SlotStatus {
-  if (summary === undefined) return { text: "...", tone: "inherit" };
-  if (summary.sealed) return { text: "SEALED", tone: "seal" };
-  if (summary.scheduled === 0) return { text: "NO DATA", tone: "inherit" };
-  if (summary.open > 0) return { text: `${pad(summary.open)} OPEN`, tone: "inherit" };
-  return { text: "READY", tone: "done" };
+/** `09-11 fri` — the same date where the bar has no room for the year. */
+export function shortDayLabel(date: LocalDate): string {
+  return `${date.slice(5)} ${WEEKDAYS[dayOfWeek(date)]}`;
 }
 
 /**
@@ -101,23 +51,23 @@ export function rowStatus(row: { outcome: Outcome; marked: boolean; settled: boo
   return row.marked || row.settled ? row.outcome : "open";
 }
 
-/** Earlier days that are neither sealed nor fully marked. */
-export function countBacklog(summaries: Iterable<DaySummary>, today: LocalDate): number {
-  let count = 0;
-  for (const summary of summaries) {
-    if (summary.date < today && !summary.sealed && summary.open > 0) count += 1;
-  }
-  return count;
+/**
+ * The dates worth summarizing for the nudge: the oldest open days, since the
+ * oldest is the one the console asks about first. Bounded like every eager
+ * read — past this many an owner is asking for a report, not a nudge.
+ */
+export function nudgeDates(backlog: readonly LocalDate[], limit = MAX_EAGER_DAYS): LocalDate[] {
+  return [...backlog].sort().slice(0, limit);
 }
 
-/** The instant a day was closed, as a wall clock in the owner's zone. */
-export function clockIn(instant: number, timezone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date(instant));
+/** `2026-09-10 never sealed · 3 of 6 unresolved` */
+export function backlogLine(summary: DaySummary): string {
+  return `${summary.date} never sealed · ${summary.open} of ${summary.scheduled} unresolved`;
+}
+
+/** The stamp a sealed day wears for good. */
+export function sealStamp(date: LocalDate, done: number, scheduled: number): string {
+  return `sealed ${date} · ${done}/${scheduled} done`;
 }
 
 /** Two-digit line numbers, the way a listing prints them. */

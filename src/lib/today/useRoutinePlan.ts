@@ -24,7 +24,11 @@ export function useRoutinePlan(): RoutinePlan {
   const retire = useMutation(api.schedules.retire);
 
   return {
-    routines: routines?.filter((routine) => routine.state === "active"),
+    // Visibility comes off the schedule frontier, not off today. Retiring
+    // closes the current version *at* today, so a removed routine is still
+    // `active` for the rest of the day — reading `state` here would leave it on
+    // screen and invite a second, pointless retirement.
+    routines: routines?.filter((routine) => routine.planned === "active"),
     add: async (name) => {
       await create({ name, dowMask: EVERY_DAY });
     },

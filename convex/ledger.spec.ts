@@ -191,6 +191,41 @@ describe("the day-of-week mask", () => {
   });
 });
 
+describe("the plan list", () => {
+  test("a retired routine leaves the plan at once and today's roster at midnight", async () => {
+    const { as } = await ledger("2026-03-01");
+    const { routineId } = await as.mutation(api.routines.create, {
+      name: "Run",
+      dowMask: EVERY_DAY,
+    });
+
+    await as.mutation(api.schedules.retire, { routineId });
+
+    // Retirement closes the frontier *at* today, so today keeps its Instance
+    // and today's state still reads active. The plan is the go-forward list.
+    const [listed] = await as.query(api.routines.list, {});
+    expect(listed!.state).toBe("active");
+    expect(listed!.planned).toBe("retired");
+
+    atDate("2026-03-02");
+    await sweepToToday(as);
+    const [tomorrow] = await as.query(api.routines.list, {});
+    expect(tomorrow!.state).toBe("lapsed");
+    expect(tomorrow!.planned).toBe("retired");
+  });
+
+  test("a paused routine is planned as paused, not as retired", async () => {
+    const { as } = await ledger("2026-03-01");
+    const { routineId } = await as.mutation(api.routines.create, {
+      name: "Run",
+      dowMask: EVERY_DAY,
+    });
+
+    await as.mutation(api.schedules.set, { routineId, dowMask: 0 });
+    expect((await as.query(api.routines.list, {}))[0]!.planned).toBe("paused");
+  });
+});
+
 describe("marks and close", () => {
   test("the latest mark wins and the instance cites it", async () => {
     const { as } = await ledger("2026-03-02", 1);

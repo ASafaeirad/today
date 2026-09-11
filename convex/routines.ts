@@ -11,7 +11,7 @@ import type { QueryCtx } from "./_generated/server";
 import { initNamespace, routineNamespace } from "./lib/aggregates";
 import { findDay } from "./lib/days";
 import { ownedMutation, ownedQuery } from "./lib/functions";
-import { openVersion, versionsFor } from "./lib/schedules";
+import { frontierOf, openVersion, versionsFor } from "./lib/schedules";
 import { pinRoutineOn } from "./lib/sweep";
 import { outcomeValidator } from "./schema";
 
@@ -37,6 +37,13 @@ export const list = ownedQuery({
               : current.dowMask === 0
                 ? ("paused" as const)
                 : ("active" as const),
+          /**
+           * The same three words read off the frontier rather than off today.
+           * Retiring closes the frontier row *at* today, so `state` stays
+           * `active` until tomorrow while the routine is already gone from the
+           * go-forward list — which is the list plan mode edits.
+           */
+          planned: plannedState(frontierOf(versions)),
           days: current ? daysFromMask(current.dowMask) : [],
           scheduleVersionId: current?._id ?? null,
         };
@@ -44,6 +51,18 @@ export const list = ownedQuery({
     );
   },
 });
+
+/**
+ * What the routine does from tomorrow on. A closed frontier row is a
+ * retirement: nothing follows it, so the routine has left the plan even while
+ * today's roster still carries it.
+ */
+function plannedState(
+  frontier: Doc<"scheduleVersions"> | undefined,
+): "active" | "paused" | "retired" {
+  if (frontier === undefined || frontier.activeUntil !== null) return "retired";
+  return frontier.dowMask === 0 ? "paused" : "active";
+}
 
 /**
  * A routine's first schedule version starts today, so today's Instance is

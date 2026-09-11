@@ -32,7 +32,11 @@ export function TodayConsole({ today }: { today: LocalDate }) {
   const scheduled = c.roster.length;
   const open = c.roster.filter((entry) => rowStatus(entry) === "open").length;
   const done = c.roster.filter((entry) => rowStatus(entry) === "done").length;
-  const canSeal = c.day !== undefined && scheduled > 0;
+  // The track line is clickable whatever it says, so the sealed day has to be
+  // gated here: `days.close` on a sealed day succeeds as a no-op, which would
+  // put an irreversible-looking dialog in front of a record that is already
+  // locked.
+  const canSeal = c.day !== undefined && !c.sealed && scheduled > 0;
   const beginSeal = () => {
     if (canSeal) c.seal.begin(today);
   };
@@ -54,6 +58,7 @@ export function TodayConsole({ today }: { today: LocalDate }) {
               resolved={scheduled - open}
               scheduled={scheduled}
               open={open}
+              canSeal={canSeal}
               onSeal={beginSeal}
             />
           )}

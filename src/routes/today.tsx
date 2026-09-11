@@ -29,5 +29,5 @@ function TodayPage() {
     );
   }
 
-  return <TodayConsole today={session.today} timezone={session.timezone} />;
+  return <TodayConsole today={session.today} />;
 }

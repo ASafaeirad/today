@@ -51,6 +51,7 @@ export const append = ownedMutation({
 
     const day = await findDay(ctx, ctx.owner._id, args.date);
     if (!day) throw new Error(`No day row for ${args.date}`);
+    if (day.sealed) throw new Error("A sealed day is permanent.");
 
     // Buy the skip before writing the Mark, so a refusal leaves no trace.
     const charged = args.outcome === "skipped" && instance.outcome !== "skipped";

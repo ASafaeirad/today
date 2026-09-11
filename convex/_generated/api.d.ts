@@ -14,6 +14,7 @@ import type * as days from "../days.js";
 import type * as http from "../http.js";
 import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_balance from "../lib/balance.js";
 import type * as lib_days from "../lib/days.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_instances from "../lib/instances.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/aggregates": typeof lib_aggregates;
   "lib/auth": typeof lib_auth;
+  "lib/balance": typeof lib_balance;
   "lib/days": typeof lib_days;
   "lib/functions": typeof lib_functions;
   "lib/instances": typeof lib_instances;

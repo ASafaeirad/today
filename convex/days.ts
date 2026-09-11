@@ -3,6 +3,9 @@ import { v } from "convex/values";
 import { MAX_EAGER_FOLDS } from "#domain/constants";
 import { shouldSuggestRetirement } from "#domain/retirement";
 
+import type { Doc } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+
 import { requireSkips } from "./lib/balance";
 import { bumpRev, ensureDay, findDay } from "./lib/days";
 import { ownedMutation, ownedQuery } from "./lib/functions";
@@ -38,22 +41,32 @@ export const get = ownedQuery({
           : ("awaitingReview" as const),
       rev: day?.rev ?? 0,
       closedAt: day?.closedAt ?? null,
-      roster: instances.map((instance) => ({
-        instanceId: instance._id,
-        routineId: instance.routineId,
-        name: routines.get(instance.routineId) ?? "(unknown)",
-        outcome: instance.outcome,
-        /** No citation means nobody has marked this cell yet. */
-        marked: instance.resolvedFromMarkId !== null,
-        settled: instance.closedAt !== null,
-        scheduleVersionId: instance.scheduleVersionId,
-      })),
+      sealed: day?.sealed ?? false,
+      closingNote: day?.closingNote ?? "",
+      roster: await Promise.all(
+        instances.map(async (instance) => ({
+          instanceId: instance._id,
+          routineId: instance.routineId,
+          name: routines.get(instance.routineId) ?? "(unknown)",
+          outcome: instance.outcome,
+          /** No citation means nobody has marked this cell yet. */
+          marked:
+            instance.resolvedFromMarkId !== null &&
+            (await ctx.db.get(instance.resolvedFromMarkId))?.outcome != null,
+          settled: instance.closedAt !== null,
+          scheduleVersionId: instance.scheduleVersionId,
+        })),
+      ),
       stats: await findDayStats(ctx, ctx.owner._id, args.date),
     };
   },
 });
 
 /**
+ * The tracker passes `seal: true` with the reviewed revision and closing note.
+ * This requires explicit outcomes and makes later marks impossible. Calls without
+ * `seal` retain the legacy close behavior for existing clients.
+ *
  * Closing is one-way and idempotent: a second close changes nothing and never
  * mints twice. Every unset Instance becomes missed, which is what the resolver
  * already returns for a cell with no Mark.
@@ -69,20 +82,19 @@ export const get = ownedQuery({
  * the owner clears it by re-marking a skip as done or missed.
  */
 export const close = ownedMutation({
-  args: { date: v.string(), closeKey: v.optional(v.string()) },
+  args: {
+    date: v.string(),
+    closeKey: v.optional(v.string()),
+    seal: v.optional(v.boolean()),
+    expectedRev: v.optional(v.number()),
+    closingNote: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     if (args.date > ctx.today) throw new Error("Cannot close a future day");
 
     const day = await ensureDay(ctx, ctx.owner._id, args.date);
-    if (day.closedAt !== null) {
-      return {
-        date: args.date,
-        closed: true,
-        alreadyClosed: true,
-        rev: day.rev,
-        suggestions: [] as { routineId: string; consecutive: number }[],
-      };
-    }
+    const closed = await handleAlreadyClosedDay(ctx, day, args);
+    if (closed) return closed;
 
     const instances = await instancesOn(ctx, ctx.owner._id, args.date);
     if (instances.length > MAX_EAGER_FOLDS) {
@@ -91,6 +103,7 @@ export const close = ownedMutation({
       );
     }
 
+    if (args.seal) await validateSeal(ctx, day, instances, args);
     const rev = await bumpRev(ctx, day);
     const closedAt = Date.now();
 
@@ -129,7 +142,12 @@ export const close = ownedMutation({
       await applyResolution(ctx, instance, resolution, { seal: closedAt });
     }
 
-    await ctx.db.patch(day._id, { closedAt, closeKey: args.closeKey ?? null });
+    await ctx.db.patch(day._id, {
+      closedAt,
+      closeKey: args.closeKey ?? null,
+      sealed: Boolean(args.seal),
+      closingNote: args.closingNote ?? "",
+    });
     await rewriteDayStats(ctx, ctx.owner._id, args.date);
 
     // Retirement is offered at close, never imposed, and never stored.
@@ -146,3 +164,65 @@ export const close = ownedMutation({
     return { date: args.date, closed: true, alreadyClosed: false, rev, suggestions };
   },
 });
+
+async function handleAlreadyClosedDay(
+  ctx: MutationCtx,
+  day: Doc<"days">,
+  args: { date: string; seal?: boolean; expectedRev?: number; closingNote?: string },
+) {
+  if (day.closedAt === null) return null;
+  if (args.seal && !day.sealed) {
+    const instances = await instancesOn(ctx, ctx.owner._id, args.date);
+    await validateSeal(ctx, day, instances, args);
+    const rev = await bumpRev(ctx, day);
+    await ctx.db.patch(day._id, {
+      sealed: true,
+      closingNote: args.closingNote ?? "",
+    });
+    return {
+      date: args.date,
+      closed: true,
+      alreadyClosed: true,
+      rev,
+      suggestions: [] as { routineId: string; consecutive: number }[],
+    };
+  }
+  return {
+    date: args.date,
+    closed: true,
+    alreadyClosed: true,
+    rev: day.rev,
+    suggestions: [] as { routineId: string; consecutive: number }[],
+  };
+}
+
+/** Open history stays available without an expiry date. */
+export const backlog = ownedQuery({
+  args: {},
+  handler: async (ctx) => {
+    const days = await ctx.db
+      .query("days")
+      .withIndex("by_owner_date", (q) => q.eq("ownerId", ctx.owner._id).lt("date", ctx.today))
+      .order("desc")
+      .collect();
+    return days.filter((day) => day.closedAt === null).map((day) => day.date);
+  },
+});
+
+async function validateSeal(
+  ctx: MutationCtx,
+  day: Doc<"days">,
+  instances: Doc<"instances">[],
+  args: { expectedRev?: number; closingNote?: string },
+) {
+  if (args.expectedRev !== day.rev)
+    throw new Error("This day changed. Review it again before sealing.");
+  if ((args.closingNote?.length ?? 0) > 2000)
+    throw new Error("Closing note must be 2000 characters or fewer.");
+  for (const instance of instances) {
+    const mark =
+      instance.resolvedFromMarkId === null ? null : await ctx.db.get(instance.resolvedFromMarkId);
+    if (mark?.outcome == null)
+      throw new Error("Choose an outcome for every routine before sealing.");
+  }
+}

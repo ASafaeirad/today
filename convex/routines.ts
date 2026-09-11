@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { RETIREMENT_THRESHOLD } from "#domain/constants";
+import { addDays } from "#domain/date";
 import { consecutiveMisses, shouldSuggestRetirement } from "#domain/retirement";
 import { assertDowMask, coversDate, daysFromMask } from "#domain/schedule";
 
@@ -8,6 +9,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 
 import { initNamespace, routineNamespace } from "./lib/aggregates";
+import { findDay } from "./lib/days";
 import { ownedMutation, ownedQuery } from "./lib/functions";
 import { openVersion, versionsFor } from "./lib/schedules";
 import { pinRoutineOn } from "./lib/sweep";
@@ -45,13 +47,16 @@ export const list = ownedQuery({
 
 /**
  * A routine's first schedule version starts today, so today's Instance is
- * pinned here: the sweep has already passed this date.
+ * pinned here: the sweep has already passed this date. If today is sealed,
+ * the first schedule version starts tomorrow to preserve the sealed roster.
  */
 export const create = ownedMutation({
   args: { name: v.string(), dowMask: v.number() },
   handler: async (ctx, args) => {
     assertDowMask(args.dowMask);
 
+    const today = await findDay(ctx, ctx.owner._id, ctx.today);
+    const activeFrom = today?.sealed ? addDays(ctx.today, 1) : ctx.today;
     const routineId = await ctx.db.insert("routines", {
       ownerId: ctx.owner._id,
       name: args.name,
@@ -63,7 +68,7 @@ export const create = ownedMutation({
       routineId,
       seq: 0,
       dowMask: args.dowMask,
-      activeFrom: ctx.today,
+      activeFrom,
     });
 
     await pinRoutineOn(ctx, {

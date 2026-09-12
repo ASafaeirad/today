@@ -1,6 +1,7 @@
 import { Link, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 
 import { AppShell } from "#lib/app/AppShell.tsx";
+import { config } from "#lib/config.ts";
 import { Text } from "#ui";
 
 import type { RouterContext } from "../router-context";
@@ -19,7 +20,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   return (
-    <AppShell>
+    <AppShell version={config.version.slice(0, 7)}>
       <Outlet />
     </AppShell>
   );

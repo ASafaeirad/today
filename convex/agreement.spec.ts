@@ -1,5 +1,3 @@
-import { afterEach, describe, expect, test } from "vite-plus/test";
-
 import { RATE_DOCUMENT_LIMIT } from "#domain/constants";
 import { addDays, datesBetween } from "#domain/date";
 import { EVERY_DAY, maskFromDays } from "#domain/schedule";
@@ -52,7 +50,7 @@ afterEach(() => {
 });
 
 describe("component agreement", () => {
-  test("every rate answer's recount equals the component's count", async () => {
+  it("every rate answer's recount equals the component's count", async () => {
     const t = initConvexTest();
     atDate("2026-01-01");
     const as = await signIn(t);
@@ -112,7 +110,7 @@ describe("component agreement", () => {
     // developer machine and just over it on a CI runner.
   }, 30_000);
 
-  test("the receipt's excluded tallies reconcile with the instances in range", async () => {
+  it("the receipt's excluded tallies reconcile with the instances in range", async () => {
     const t = initConvexTest();
     atDate("2026-03-01");
     const as = await signIn(t);
@@ -149,7 +147,7 @@ describe("the adoption gate", () => {
    * the component and serve rates from `rates.recount`; the recount is already
    * written, because it is the verifier, and no schema migration is needed.
    */
-  test("a year-wide count stays inside the document budget", async () => {
+  it("a year-wide count stays inside the document budget", async () => {
     const t = initConvexTest();
     atDate("2025-01-01");
     const as = await signIn(t);

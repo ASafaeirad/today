@@ -1,5 +1,3 @@
-import { afterEach, describe, expect, test } from "vite-plus/test";
-
 import { RATE_DOCUMENT_LIMIT } from "#domain/constants";
 import { datesBetween } from "#domain/date";
 import { EVERY_DAY, maskFromDays } from "#domain/schedule";
@@ -35,7 +33,7 @@ afterEach(() => {
 });
 
 describe("rates", () => {
-  test("counts done over done plus missed, with skipped on neither side", async () => {
+  it("counts done over done plus missed, with skipped on neither side", async () => {
     const l = await ledger("2026-03-01", 1);
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -67,7 +65,7 @@ describe("rates", () => {
     expect(answer.rate).toBe(0.5);
   });
 
-  test("an open day is pending, not missed, so opening today cannot lower a rate", async () => {
+  it("an open day is pending, not missed, so opening today cannot lower a rate", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -93,7 +91,7 @@ describe("rates", () => {
     expect(answer.receipt.excluded.open).toBe(1);
   });
 
-  test("a day that was never closed is excluded as awaiting review", async () => {
+  it("a day that was never closed is excluded as awaiting review", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     await as.mutation(api.routines.create, { name: "Run", dowMask: EVERY_DAY });
@@ -111,7 +109,7 @@ describe("rates", () => {
     expect(answer.receipt.excluded.open).toBe(1);
   });
 
-  test("a paused routine appears in no denominator", async () => {
+  it("a paused routine appears in no denominator", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -139,7 +137,7 @@ describe("rates", () => {
     expect(listed[0]!.state).toBe("paused");
   });
 
-  test("a lapsed year reads as not active rather than as 0%", async () => {
+  it("a lapsed year reads as not active rather than as 0%", async () => {
     const l = await ledger("2025-06-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -170,11 +168,11 @@ describe("rates", () => {
     expect(ran.rate).toBe(0);
 
     // One routine with a visible gap, not two routines.
-    expect(await as.query(api.routines.list, {})).toHaveLength(1);
+    await expect(as.query(api.routines.list, {})).resolves.toHaveLength(1);
     expect((await as.query(api.routines.list, {}))[0]!.state).toBe("lapsed");
   });
 
-  test("a routine that returns after a gap keeps one identity", async () => {
+  it("a routine that returns after a gap keeps one identity", async () => {
     const l = await ledger("2025-06-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -198,7 +196,7 @@ describe("rates", () => {
     expect(history[1]).toMatchObject({ activeFrom: "2027-06-02", activeUntil: null });
   });
 
-  test("compares a partial period against the same slice of the previous one", async () => {
+  it("compares a partial period against the same slice of the previous one", async () => {
     const l = await ledger("2026-02-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -229,7 +227,7 @@ describe("rates", () => {
 });
 
 describe("the receipt", () => {
-  test("names the bounds, the namespace and what it excluded", async () => {
+  it("names the bounds, the namespace and what it excluded", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     await as.mutation(api.routines.create, { name: "Run", dowMask: EVERY_DAY });
@@ -255,7 +253,7 @@ describe("the receipt", () => {
     expect(answer.receipt.documentLimit).toBe(RATE_DOCUMENT_LIMIT);
   });
 
-  test("the recount folds the instances the bounds name and agrees", async () => {
+  it("the recount folds the instances the bounds name and agrees", async () => {
     const l = await ledger("2026-01-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -283,7 +281,7 @@ describe("the receipt", () => {
     expect(recount.counts.done).toBeGreaterThan(0);
   });
 
-  test("a rate drills down to the days underneath it", async () => {
+  it("a rate drills down to the days underneath it", async () => {
     const l = await ledger("2026-03-01", 2);
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -317,7 +315,7 @@ describe("the receipt", () => {
     expect(skipped).toEqual(["2026-03-02"]);
   });
 
-  test("a per-routine span is answered in its own namespace", async () => {
+  it("a per-routine span is answered in its own namespace", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const a = await as.mutation(api.routines.create, {

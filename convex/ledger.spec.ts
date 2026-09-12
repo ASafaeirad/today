@@ -1,5 +1,3 @@
-import { afterEach, describe, expect, test } from "vite-plus/test";
-
 import { MAX_SWEEP_DAYS, MAX_SWEEP_PLACEMENTS } from "#domain/constants";
 import { addDays, datesBetween } from "#domain/date";
 import { EVERY_DAY, maskFromDays } from "#domain/schedule";
@@ -31,7 +29,7 @@ afterEach(() => {
 });
 
 describe("the sweep", () => {
-  test("pins a roster for every past date, opened or not", async () => {
+  it("pins a roster for every past date, opened or not", async () => {
     const { as } = await ledger("2026-03-01");
     await as.mutation(api.routines.create, { name: "Run", dowMask: EVERY_DAY });
 
@@ -47,7 +45,7 @@ describe("the sweep", () => {
     expect(unopened.roster[0]!.marked).toBe(false);
   });
 
-  test("places nothing on a date the mask does not name", async () => {
+  it("places nothing on a date the mask does not name", async () => {
     const { as } = await ledger("2026-03-01");
     await as.mutation(api.routines.create, { name: "Run", dowMask: SUNDAYS });
 
@@ -58,7 +56,7 @@ describe("the sweep", () => {
     expect((await as.query(api.days.get, { date: "2026-03-01" })).roster).toHaveLength(1);
   });
 
-  test("writes nothing on a re-run, because the watermark moves only forward", async () => {
+  it("writes nothing on a re-run, because the watermark moves only forward", async () => {
     const { t, as } = await ledger("2026-03-01");
     await as.mutation(api.routines.create, { name: "Run", dowMask: EVERY_DAY });
 
@@ -73,7 +71,7 @@ describe("the sweep", () => {
     expect(second.map((i) => i._id)).toEqual(first.map((i) => i._id));
   });
 
-  test("pins a fortnight against the old version before a schedule edit lands", async () => {
+  it("pins a fortnight against the old version before a schedule edit lands", async () => {
     const { as } = await ledger("2026-03-06");
     const { routineId, scheduleVersionId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -102,7 +100,7 @@ describe("the sweep", () => {
 });
 
 describe("the sweep's bounds", () => {
-  test("refuses a write while a backlog larger than one transaction is outstanding", async () => {
+  it("refuses a write while a backlog larger than one transaction is outstanding", async () => {
     const { as } = await ledger("2026-01-01");
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -122,14 +120,14 @@ describe("the sweep's bounds", () => {
     expect(first.caughtUp).toBe(false);
     expect(first.pinsThroughDate).toBe(addDays("2026-01-01", MAX_SWEEP_DAYS));
 
-    expect(await sweepToToday(as)).toMatchObject({
+    await expect(sweepToToday(as)).resolves.toMatchObject({
       caughtUp: true,
       pinsThroughDate: "2027-01-01",
     });
     await as.mutation(api.schedules.set, { routineId, dowMask: SUNDAYS });
   });
 
-  test("stops on the Instance bound as well as the date one", async () => {
+  it("stops on the Instance bound as well as the date one", async () => {
     const { as } = await ledger("2026-03-01");
     const routines = 20;
     for (let n = 0; n < routines; n += 1) {
@@ -142,13 +140,13 @@ describe("the sweep's bounds", () => {
     expect(first.caughtUp).toBe(false);
     expect(first.pinsThroughDate).toBe(addDays("2026-03-01", MAX_SWEEP_PLACEMENTS / routines));
 
-    expect(await sweepToToday(as)).toMatchObject({
+    await expect(sweepToToday(as)).resolves.toMatchObject({
       caughtUp: true,
       pinsThroughDate: "2026-03-26",
     });
   });
 
-  test("a chunk stops on a date boundary, so it never leaves half a roster", async () => {
+  it("a chunk stops on a date boundary, so it never leaves half a roster", async () => {
     const { t, as } = await ledger("2026-03-01");
     for (const name of ["Run", "Read", "Call"]) {
       await as.mutation(api.routines.create, { name, dowMask: EVERY_DAY });
@@ -167,7 +165,7 @@ describe("the sweep's bounds", () => {
 });
 
 describe("the day-of-week mask", () => {
-  test("refuses a mask outside the seven bits, on create as well as on edit", async () => {
+  it("refuses a mask outside the seven bits, on create as well as on edit", async () => {
     const { as } = await ledger("2026-03-01");
 
     // 128 reads as active and places nothing; -1 is coerced into every day.
@@ -186,13 +184,13 @@ describe("the day-of-week mask", () => {
     );
 
     // A refused create writes no routine and no first schedule version.
-    expect(await as.query(api.routines.list, {})).toHaveLength(1);
-    expect(await as.query(api.schedules.history, { routineId })).toHaveLength(1);
+    await expect(as.query(api.routines.list, {})).resolves.toHaveLength(1);
+    await expect(as.query(api.schedules.history, { routineId })).resolves.toHaveLength(1);
   });
 });
 
 describe("the plan list", () => {
-  test("a retired routine leaves the plan at once and today's roster at midnight", async () => {
+  it("a retired routine leaves the plan at once and today's roster at midnight", async () => {
     const { as } = await ledger("2026-03-01");
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -214,7 +212,7 @@ describe("the plan list", () => {
     expect(tomorrow!.planned).toBe("retired");
   });
 
-  test("a paused routine is planned as paused, not as retired", async () => {
+  it("a paused routine is planned as paused, not as retired", async () => {
     const { as } = await ledger("2026-03-01");
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -227,7 +225,7 @@ describe("the plan list", () => {
 });
 
 describe("marks and close", () => {
-  test("the latest mark wins and the instance cites it", async () => {
+  it("the latest mark wins and the instance cites it", async () => {
     const { as } = await ledger("2026-03-02", 1);
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -248,10 +246,12 @@ describe("marks and close", () => {
     const day = await as.query(api.days.get, { date: "2026-03-02" });
     expect(day.roster[0]!.outcome).toBe("skipped");
     expect(second.resolvedFromMarkId).toBe(second.markId);
-    expect(await as.query(api.marks.forCell, { date: "2026-03-02", routineId })).toHaveLength(2);
+    await expect(
+      as.query(api.marks.forCell, { date: "2026-03-02", routineId }),
+    ).resolves.toHaveLength(2);
   });
 
-  test("an unset clears to missed and cites the unset", async () => {
+  it("an unset clears to missed and cites the unset", async () => {
     const { as } = await ledger("2026-03-02");
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -273,7 +273,7 @@ describe("marks and close", () => {
     expect(unset.resolvedFromMarkId).toBe(unset.markId);
   });
 
-  test("a mark on an open day writes no projection row", async () => {
+  it("a mark on an open day writes no projection row", async () => {
     const { t, as } = await ledger("2026-03-02");
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -285,10 +285,10 @@ describe("marks and close", () => {
       outcome: "done",
     });
 
-    expect(await t.run((ctx) => ctx.db.query("dayStats").collect())).toEqual([]);
+    await expect(t.run((ctx) => ctx.db.query("dayStats").collect())).resolves.toEqual([]);
   });
 
-  test("closing settles every unset instance as missed", async () => {
+  it("closing settles every unset instance as missed", async () => {
     const { as } = await ledger("2026-03-02");
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Skip me",
@@ -309,7 +309,7 @@ describe("marks and close", () => {
     expect(day.roster.every((entry) => entry.settled)).toBe(true);
   });
 
-  test("a second close changes nothing and never mints twice", async () => {
+  it("a second close changes nothing and never mints twice", async () => {
     const { t, as } = await ledger("2026-03-02");
     await as.mutation(api.routines.create, { name: "Run", dowMask: EVERY_DAY });
 
@@ -325,7 +325,7 @@ describe("marks and close", () => {
     expect(after).toEqual(before);
   });
 
-  test("a closed day is amended in place, with no reopen", async () => {
+  it("a closed day is amended in place, with no reopen", async () => {
     const { as } = await ledger("2026-03-02");
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",
@@ -344,7 +344,7 @@ describe("marks and close", () => {
     expect(day.stats).toMatchObject({ done: 1, missed: 0 });
   });
 
-  test("refuses a mark on a date the routine was not scheduled", async () => {
+  it("refuses a mark on a date the routine was not scheduled", async () => {
     const { as } = await ledger("2026-03-02");
     const { routineId } = await as.mutation(api.routines.create, {
       name: "Run",

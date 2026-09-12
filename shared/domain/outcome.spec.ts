@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vite-plus/test";
-
 import { resolveOutcome, type MarkLike } from "./outcome";
 
 const mark = (id: string, outcome: MarkLike["outcome"], serverAt: number): MarkLike => ({
@@ -8,7 +6,7 @@ const mark = (id: string, outcome: MarkLike["outcome"], serverAt: number): MarkL
   serverAt,
 });
 
-describe("resolveOutcome", () => {
+describe(resolveOutcome, () => {
   it("resolves a cell with no marks to missed, citing nothing", () => {
     expect(resolveOutcome([], 7)).toEqual({
       outcome: "missed",

@@ -1,5 +1,3 @@
-import { afterEach, describe, expect, test } from "vite-plus/test";
-
 import { datesBetween } from "#domain/date";
 import { EVERY_DAY } from "#domain/schedule";
 
@@ -118,14 +116,14 @@ afterEach(() => {
 });
 
 describe("verification", () => {
-  test("reports nothing on a ledger written by the normal path", async () => {
+  it("reports nothing on a ledger written by the normal path", async () => {
     const l = await fixture();
     const report = await verifyMarch(l);
     expect(report.findings).toEqual([]);
     expect(report.runId).toBeTruthy();
   });
 
-  test("names the day and the mark when an outcome disagrees with the marks", async () => {
+  it("names the day and the mark when an outcome disagrees with the marks", async () => {
     const l = await fixture();
     await forgeOutcome(l, "2026-03-02", "missed");
 
@@ -144,7 +142,7 @@ describe("verification", () => {
     expect((await batchRunRow(l, report.runId))?.findings).toContain(finding);
   });
 
-  test("never repairs what it finds", async () => {
+  it("never repairs what it finds", async () => {
     const l = await fixture();
     const corrupted = await forgeOutcome(l, "2026-03-02", "missed");
 
@@ -154,7 +152,7 @@ describe("verification", () => {
     expect((await readInstance(l, corrupted))!.outcome).toBe("missed");
   });
 
-  test("catches a projection that disagrees with the instances", async () => {
+  it("catches a projection that disagrees with the instances", async () => {
     const l = await fixture();
     await forgeDayStats(l, "2026-03-04", 99);
 
@@ -164,7 +162,7 @@ describe("verification", () => {
     );
   });
 
-  test("catches a hole where the schedule log places an instance", async () => {
+  it("catches a hole where the schedule log places an instance", async () => {
     const l = await fixture();
     await dropInstance(l, "2026-03-08");
 
@@ -174,7 +172,7 @@ describe("verification", () => {
     );
   });
 
-  test("reports a sweep watermark that lags behind today", async () => {
+  it("reports a sweep watermark that lags behind today", async () => {
     const l = await fixture();
     atDate("2026-03-20");
 
@@ -187,7 +185,7 @@ describe("verification", () => {
     expect((await verifyMarch(l)).findings).toEqual([]);
   });
 
-  test("catches an unsettled instance inside a closed day", async () => {
+  it("catches an unsettled instance inside a closed day", async () => {
     const l = await fixture();
     await forgeUnseal(l, "2026-03-04");
 
@@ -199,7 +197,7 @@ describe("verification", () => {
     expect(finding).toMatch(/unsettled inside a day closed at/u);
   });
 
-  test("prints the date of the last full verify", async () => {
+  it("prints the date of the last full verify", async () => {
     const l = await fixture();
     const first = await verifyMarch(l);
     expect(first.lastFullVerify).toBeNull();
@@ -213,7 +211,7 @@ describe("verification", () => {
 });
 
 describe("repair", () => {
-  test("fixes what verification found, and is a no-op the second time", async () => {
+  it("fixes what verification found, and is a no-op the second time", async () => {
     const l = await fixture();
     await forgeOutcome(l, "2026-03-02", "missed");
 
@@ -234,7 +232,7 @@ describe("repair", () => {
     expect(second.roster).toEqual(first.roster);
   });
 
-  test("seals what it restores into a closed day", async () => {
+  it("seals what it restores into a closed day", async () => {
     const l = await fixture();
     await dropInstance(l, "2026-03-04");
 
@@ -248,7 +246,7 @@ describe("repair", () => {
     expect((await verifyMarch(l)).findings).toEqual([]);
   });
 
-  test("re-seals an instance a faulty close left unsettled", async () => {
+  it("re-seals an instance a faulty close left unsettled", async () => {
     const l = await fixture();
     await forgeUnseal(l, "2026-03-04");
 
@@ -257,7 +255,7 @@ describe("repair", () => {
     expect((await verifyMarch(l)).findings).toEqual([]);
   });
 
-  test("refills a hole left by a write path that skipped the sweep", async () => {
+  it("refills a hole left by a write path that skipped the sweep", async () => {
     const l = await fixture();
     await dropInstance(l, "2026-03-08");
 
@@ -269,7 +267,7 @@ describe("repair", () => {
 });
 
 describe("the batch path", () => {
-  test("moves the cursor inside the chunk's transaction and resumes", async () => {
+  it("moves the cursor inside the chunk's transaction and resumes", async () => {
     const l = await fixture();
     const started = await l.as.mutation(api.repair.start, {
       from: "2026-01-15",
@@ -283,16 +281,16 @@ describe("the batch path", () => {
 
     await l.t.finishAllScheduledFunctions(() => {});
 
-    expect(await batchRunRow(l, started.runId)).toMatchObject({
+    await expect(batchRunRow(l, started.runId)).resolves.toMatchObject({
       state: "done",
       chunksDone: 3,
       appliedChunks: [0, 1, 2],
       cursor: null,
     });
-    expect(await l.as.query(api.repair.inFlight, {})).toEqual([]);
+    await expect(l.as.query(api.repair.inFlight, {})).resolves.toEqual([]);
   });
 
-  test("a retry of a chunk does nothing", async () => {
+  it("a retry of a chunk does nothing", async () => {
     const l = await fixture();
     const started = await l.as.mutation(api.repair.start, {
       from: "2026-03-01",
@@ -313,7 +311,7 @@ describe("the batch path", () => {
 });
 
 describe("rebuild equivalence", () => {
-  test("digests match byte for byte after every projection is deleted", async () => {
+  it("digests match byte for byte after every projection is deleted", async () => {
     const l = await fixture();
 
     const before = await dayStatRows(l);

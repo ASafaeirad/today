@@ -1,9 +1,8 @@
+import type { Outcome } from "#domain/outcome";
 /**
  * The view model of the console: pure functions from ledger facts to the words
  * and tones the terminal prints. Nothing here reads the network or the DOM.
  */
-
-import type { Outcome } from "#domain/outcome";
 
 import { MAX_EAGER_DAYS } from "#domain/constants";
 import { dayOfWeek, type LocalDate } from "#domain/date";

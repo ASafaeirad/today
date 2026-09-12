@@ -3,7 +3,6 @@
 import { register as registerAggregate } from "@convex-dev/aggregate/test";
 import { register as registerBatchWorker } from "@convex-dev/batch-worker/test";
 import { convexTest, type TestConvex } from "convex-test";
-import { test, vi } from "vite-plus/test";
 
 import { DAYS_PER_SKIP } from "#domain/constants";
 import { addDays, datesBetween } from "#domain/date";
@@ -113,4 +112,7 @@ export async function bankSkips(
   return { routineId, from: dates[0]!, to: last };
 }
 
-test("setup", () => {});
+it("should work", () => {
+  // This is a placeholder test to ensure the setup works correctly.
+  expect(true).toBe(true);
+});

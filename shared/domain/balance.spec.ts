@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vite-plus/test";
-
 import { canAfford, computeBalance, horizonRange, withinHorizon, type HorizonRow } from "./balance";
 import { DAYS_PER_SKIP, HORIZON_DAYS } from "./constants";
 import { addDays } from "./date";

@@ -1,5 +1,8 @@
 import "../src/styles.css";
 import { definePreview } from "@storybook/tanstack-react";
+import { sb } from "storybook/test";
+
+sb.mock(import("@convex-dev/auth/react"));
 
 export default definePreview({
   addons: [],

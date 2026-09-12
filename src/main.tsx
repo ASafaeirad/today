@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import ReactDOM from "react-dom/client";
 
 import { AppShell } from "#lib/app/AppShell.tsx";
+import { config } from "#lib/config.ts";
 import { ConvexAuthProvider } from "#lib/convex/ConvexAuthProvider.tsx";
 import { Text } from "#ui";
 
@@ -40,7 +41,7 @@ function RouterWithAuth() {
 
   if (isLoading) {
     return (
-      <AppShell>
+      <AppShell version={config.version.slice(0, 7)}>
         <div className="flex h-full items-center justify-center bg-background">
           <Text size="sm" tone="muted">
             Loading…

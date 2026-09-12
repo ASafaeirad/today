@@ -8,7 +8,7 @@ const meta = preview.meta({
   component: AppShell,
   args: {
     children: <div className="p-2.5">Screen content</div>,
-    version: "a1b2c3d4e5f67890",
+    version: "a1b2c3d",
   },
   parameters: {
     layout: "fullscreen",

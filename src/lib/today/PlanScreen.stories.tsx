@@ -92,6 +92,14 @@ export const WithRoutine = meta.story({
     );
     await expect(screen.getByRole("button", { name: "cancel" })).toBeDisabled();
 
+    const handleDocumentKeyDown = fn();
+    document.addEventListener("keydown", handleDocumentKeyDown);
+    await userEvent.keyboard("{Escape}");
+    document.removeEventListener("keydown", handleDocumentKeyDown);
+
+    await expect(handleDocumentKeyDown).not.toHaveBeenCalled();
+    await expect(screen.getByRole("dialog")).toBeVisible();
+
     finishRemove();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   },

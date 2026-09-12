@@ -12,6 +12,19 @@ export function SignInCard({ redirectTo = "/" }: Props) {
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
+  const handleSignIn = async () => {
+    setError(undefined);
+    setPending(true);
+
+    try {
+      await signIn("github", redirectTo ? { redirectTo } : undefined);
+    } catch (signInError) {
+      setError(signInError instanceof Error ? signInError.message : "Sign in failed");
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
     <Panel className="mx-auto w-full max-w-sm">
       <Bar variant="accent" placement="none" className="justify-between">
@@ -28,22 +41,13 @@ export function SignInCard({ redirectTo = "/" }: Props) {
           size="lg"
           block
           loading={pending}
-          onClick={() => {
-            setError(undefined);
-            setPending(true);
-            signIn("github", redirectTo ? { redirectTo } : undefined)
-              .catch((signInError) => {
-                setError(signInError instanceof Error ? signInError.message : "Sign in failed");
-              })
-              .finally(() => {
-                setPending(false);
-              });
-          }}
+          disabled={pending}
+          onClick={() => void handleSignIn()}
         >
           Sign in with GitHub
         </Button>
         {error ? (
-          <Text tone="record" className="tone-missed" size="sm">
+          <Text as="p" tone="record" className="tone-missed" size="sm" role="alert">
             ! {error}
           </Text>
         ) : null}

@@ -3,5 +3,5 @@ import { defineMain } from "@storybook/tanstack-react/node";
 export default defineMain({
   framework: "@storybook/tanstack-react",
   stories: ["../src/**/*.stories.tsx"],
-  addons: [],
+  addons: ["@storybook/addon-vitest"],
 });

@@ -6,6 +6,7 @@
 - Use `valibot` for client side schema validation.
 - In reusable components that render form controls, derive element `id`/`htmlFor` from React's `useId()`.
 - Never use Tailwind arbitrary values (`[...]`). Use standard utilities, named theme tokens, or a dedicated CSS class instead. Reuse an existing theme token with the same purpose before adding a new token, even when its color differs from the design reference.
+- Test UI components through Storybook stories. Put interaction assertions in story `play` functions and run them through the Storybook Vitest project. Do not add standalone Testing Library component specs when a story can cover the behavior. Follow https://storybook.js.org/docs/writing-tests.
 
 <!-- DEVELOPMENT GUIDE END -->
 

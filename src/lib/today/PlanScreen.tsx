@@ -144,7 +144,16 @@ function DraftField({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
   const message = errors.name?.message;
 
   return (
-    <form onSubmit={submit} className="border-t border-border p-2">
+    <form
+      onSubmit={(event) => {
+        if (isSubmitting) {
+          event.preventDefault();
+          return;
+        }
+        void submit(event);
+      }}
+      className="border-t border-border p-2"
+    >
       <Field name="name" invalid={message !== undefined}>
         <FieldLabel className="sr-only">new routine</FieldLabel>
         <Input
@@ -153,7 +162,7 @@ function DraftField({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
           // oxlint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           autoComplete="off"
-          disabled={isSubmitting}
+          readOnly={isSubmitting}
           placeholder="new routine — enter to add"
           invalid={message !== undefined}
           {...form.register("name")}

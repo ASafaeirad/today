@@ -157,7 +157,15 @@ function RemoveRoutineDialog({ routine, onRemove, onClose }: RemoveRoutineDialog
         if (!open && !isRemoving) onClose();
       }}
     >
-      <DialogContent className="flex items-end justify-center bg-transparent p-3 data-open:animate-cut sm:items-center sm:p-6">
+      <DialogContent
+        className="flex items-end justify-center bg-transparent p-3 data-open:animate-cut sm:items-center sm:p-6"
+        onKeyDownCapture={(event) => {
+          if (isRemoving && event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }}
+      >
         <Panel className="max-h-full w-full max-w-115 bg-background">
           <DialogHeader>
             <Text className="px-2.5 py-1.25" caps tracking="widest">

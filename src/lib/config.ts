@@ -1,3 +1,4 @@
+import { removeTrailingSlashes } from "@fullstacksjs/toolbox";
 import * as v from "valibot";
 
 const configSchema = v.object({
@@ -6,6 +7,6 @@ const configSchema = v.object({
 });
 
 export const config = v.parse(configSchema, {
-  convexUrl: import.meta.env.VITE_CONVEX_URL,
+  convexUrl: removeTrailingSlashes(import.meta.env.VITE_CONVEX_URL),
   version: import.meta.env.VITE_APP_VERSION ?? "dev",
 });

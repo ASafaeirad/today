@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-convex:
+    runs-on: ubuntu-22.04
+    environment: prod
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          cache: true
+
+      - name: Deploy Convex functions
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: vpx convex deploy --cmd 'echo "Deploying Convex..."'
+
+  deploy-frontend:
+    runs-on: ubuntu-22.04
+    environment: prod
+    needs: [deploy-convex]
+    if: always() && (needs.deploy-convex.result == 'success' || needs.deploy-convex.result == 'skipped')
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          cache: true
+
+      - name: Build
+        env:
+          VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+        run: vp build
+
+      - name: Copy dist to server
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: dist/
+          target: /var/www/theblackhole.app
+          strip_components: 1

@@ -36,6 +36,7 @@ jobs:
       - name: Build
         env:
           VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+          VITE_APP_VERSION: ${{ github.sha }}
         run: vp build
 
       - name: Copy dist to server

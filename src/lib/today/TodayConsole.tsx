@@ -42,7 +42,7 @@ export function TodayConsole({ today }: { today: LocalDate }) {
   };
 
   return (
-    <div className="grid h-dvh grid-terminal overflow-hidden bg-background text-foreground">
+    <div className="grid h-full grid-terminal overflow-hidden bg-background text-foreground">
       <div>
         <TopBar date={today} mode={c.mode} sealed={c.sealed} onMode={(next) => c.enterMode(next)} />
         {planning ? <PlanBanner /> : null}

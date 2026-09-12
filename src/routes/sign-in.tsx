@@ -21,7 +21,7 @@ function SignInPage() {
   const { redirectTo } = Route.useSearch();
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-12">
+    <div className="flex h-full items-center justify-center bg-background px-4 py-12">
       <SignInCard redirectTo={redirectTo} />
     </div>
   );

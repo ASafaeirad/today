@@ -21,7 +21,7 @@ function TodayPage() {
 
   if (session === undefined) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-background">
+      <div className="flex h-full items-center justify-center bg-background">
         <Text tone="muted" className="animate-type overflow-hidden whitespace-nowrap">
           opening the ledger ...
         </Text>

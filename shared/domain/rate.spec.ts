@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vite-plus/test";
-
 import { clipComparison, completionRate } from "./rate";
 
 describe("the completion rate", () => {

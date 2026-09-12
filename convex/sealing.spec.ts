@@ -1,5 +1,3 @@
-import { afterEach, expect, test } from "vite-plus/test";
-
 import { EVERY_DAY } from "#domain/schedule";
 
 import { api } from "./_generated/api";
@@ -18,7 +16,7 @@ async function fixture() {
   return { as, routineId, date: "2026-09-11" };
 }
 
-test("sealing requires an explicit outcome, including after an unset", async () => {
+it("sealing requires an explicit outcome, including after an unset", async () => {
   const { as, routineId, date } = await fixture();
   let day = await as.query(api.days.get, { date });
   await expect(
@@ -34,7 +32,7 @@ test("sealing requires an explicit outcome, including after an unset", async () 
   expect((await as.query(api.days.get, { date })).closedAt).toBeNull();
 });
 
-test("sealing checks the reviewed revision and permanently keeps outcomes and note", async () => {
+it("sealing checks the reviewed revision and permanently keeps outcomes and note", async () => {
   const { as, routineId, date } = await fixture();
   await as.mutation(api.marks.append, { date, routineId, outcome: "done" });
   const reviewed = await as.query(api.days.get, { date });
@@ -64,7 +62,7 @@ test("sealing checks the reviewed revision and permanently keeps outcomes and no
   expect(sealed.roster[0]?.outcome).toBe("missed");
 });
 
-test("a closed day can be sealed after another review", async () => {
+it("a closed day can be sealed after another review", async () => {
   const { as, routineId, date } = await fixture();
   await as.mutation(api.marks.append, { date, routineId, outcome: "done" });
   await as.mutation(api.days.close, { date });
@@ -91,18 +89,18 @@ test("a closed day can be sealed after another review", async () => {
   );
 });
 
-test("past days remain editable and appear in the backlog until sealed", async () => {
+it("past days remain editable and appear in the backlog until sealed", async () => {
   const { as, routineId, date } = await fixture();
   atDate("2026-09-15");
   await as.mutation(api.owners.sweep, {});
-  expect(await as.query(api.days.backlog, {})).toContain(date);
+  await expect(as.query(api.days.backlog, {})).resolves.toContain(date);
   await as.mutation(api.marks.append, { date, routineId, outcome: "missed" });
   const day = await as.query(api.days.get, { date });
   await as.mutation(api.days.close, { date, seal: true, expectedRev: day.rev });
-  expect(await as.query(api.days.backlog, {})).not.toContain(date);
+  await expect(as.query(api.days.backlog, {})).resolves.not.toContain(date);
 });
 
-test("the backlog skips the empty days a pause leaves behind", async () => {
+it("the backlog skips the empty days a pause leaves behind", async () => {
   const { as, routineId, date } = await fixture();
 
   // Pause from tomorrow, so 09-12 onwards are pinned with an empty roster.
@@ -112,10 +110,10 @@ test("the backlog skips the empty days a pause leaves behind", async () => {
 
   // The paused stretch is history, not a nag: only the day that carried a
   // roster is still owed a verdict.
-  expect(await as.query(api.days.backlog, {})).toEqual([date]);
+  await expect(as.query(api.days.backlog, {})).resolves.toEqual([date]);
 });
 
-test("creating a routine after sealing today starts it tomorrow", async () => {
+it("creating a routine after sealing today starts it tomorrow", async () => {
   const { as, routineId, date } = await fixture();
   await as.mutation(api.marks.append, { date, routineId, outcome: "done" });
   const reviewed = await as.query(api.days.get, { date });

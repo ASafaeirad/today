@@ -1,5 +1,4 @@
-/// <reference types="vitest/config" />
-import { defineOxlintConfig } from "@fullstacksjs/oxlint-config";
+import { defineOxlintConfig } from "@fullstacksjs/oxlint-minimal";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
@@ -12,6 +11,7 @@ import { playwright } from "vite-plus/test/browser-playwright";
 const dirname =
   typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
+const ignorePatterns = [".design-sync/**", "convex/_generated/**", "src/routeTree.gen.ts"];
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   server: {
@@ -22,7 +22,7 @@ export default defineConfig({
     "*": ["vp check --fix", "cspell"],
   },
   fmt: {
-    ignorePatterns: [".design-sync/**", "convex/_generated/**", "src/routeTree.gen.ts"],
+    ignorePatterns,
     sortImports: {
       groups: [
         "type-import",
@@ -39,7 +39,7 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   lint: defineOxlintConfig({
-    ignorePatterns: [".design-sync/**", "convex/_generated/**", "src/routeTree.gen.ts"],
+    ignorePatterns,
     jsPlugins: [
       {
         name: "vite-plus",
@@ -60,23 +60,9 @@ export default defineConfig({
         },
       },
       {
-        files: ["**/*.spec.ts", "**/*.spec.tsx"],
+        files: ["**/*.spec.ts", "**/*.spec.tsx", "**/*.stories.tsx", ".storybook/*.tsx"],
         rules: {
-          "max-lines-per-function": "off",
-          // Installing Vitest directly exposes rules that conflict with the existing suite's style.
-          "vitest/consistent-test-it": "off",
-          "vitest/expect-expect": "off",
           "vitest/no-conditional-in-test": "off",
-          "vitest/prefer-describe-function-title": "off",
-          "vitest/prefer-expect-resolves": "off",
-          "vitest/prefer-todo": "off",
-        },
-      },
-      {
-        files: ["**/*.stories.tsx", ".storybook/*.tsx"],
-        rules: {
-          "react-hooks/rules-of-hooks": "off",
-          "react/only-export-components": "off",
         },
       },
     ],

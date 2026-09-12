@@ -1,5 +1,3 @@
-import { afterEach, expect, test } from "vite-plus/test";
-
 import { MAX_EAGER_DAYS } from "#domain/constants";
 import { addDays, datesBetween } from "#domain/date";
 import { EVERY_DAY } from "#domain/schedule";
@@ -22,7 +20,7 @@ async function fixture(documentsReadLimit?: number) {
   return { as, routineId };
 }
 
-test("overview counts a cell under its outcome only once it is marked or settled", async () => {
+it("overview counts a cell under its outcome only once it is marked or settled", async () => {
   const { as, routineId } = await fixture();
 
   await as.mutation(api.marks.append, { date: "2026-09-10", routineId, outcome: "done" });
@@ -55,7 +53,7 @@ test("overview counts a cell under its outcome only once it is marked or settled
   expect(rows[3]).toMatchObject({ scheduled: 0, open: 0 });
 });
 
-test("a legacy close settles every cell without a mark as missed", async () => {
+it("a legacy close settles every cell without a mark as missed", async () => {
   const { as } = await fixture();
   await as.mutation(api.days.close, { date: "2026-09-09" });
 
@@ -63,14 +61,14 @@ test("a legacy close settles every cell without a mark as missed", async () => {
   expect(row).toMatchObject({ scheduled: 1, open: 0, missed: 1, state: "closed", sealed: false });
 });
 
-test("overview is bounded like every eager read", async () => {
+it("overview is bounded like every eager read", async () => {
   const { as } = await fixture();
-  expect(await as.query(api.days.overview, { dates: [] })).toEqual([]);
+  await expect(as.query(api.days.overview, { dates: [] })).resolves.toEqual([]);
   const tooMany = datesBetween(addDays("2026-09-11", -MAX_EAGER_DAYS), "2026-09-11");
   await expect(as.query(api.days.overview, { dates: tooMany })).rejects.toThrow("limit");
 });
 
-test("overview does not scan days between sparse requested dates", async () => {
+it("overview does not scan days between sparse requested dates", async () => {
   const { as } = await fixture(100);
   const dates = ["2026-09-11", "1900-01-01", "2026-09-11"];
 

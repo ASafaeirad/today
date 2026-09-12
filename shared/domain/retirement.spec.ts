@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vite-plus/test";
-
 import { RETIREMENT_THRESHOLD } from "./constants";
 import { consecutiveMisses, shouldSuggestRetirement } from "./retirement";
 

@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vite-plus/test";
-
 import { dayDigest, foldDay, type InstanceLeaf } from "./dayStats";
 
 const leaf = (

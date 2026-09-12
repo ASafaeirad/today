@@ -1,10 +1,8 @@
-import { afterEach, describe, expect, test } from "vite-plus/test";
-
 import { DAYS_PER_SKIP, RETIREMENT_THRESHOLD } from "#domain/constants";
 import { datesBetween } from "#domain/date";
 import { EVERY_DAY } from "#domain/schedule";
 
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import { atDate, initConvexTest, realTime, signIn, sweepToToday } from "./setup.spec";
 
 type Ledger = Awaited<ReturnType<typeof ledger>>;
@@ -46,7 +44,7 @@ afterEach(() => {
 });
 
 describe("the balance", () => {
-  test("mints one skip for five all-done days inside the horizon", async () => {
+  it("mints one skip for five all-done days inside the horizon", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -72,7 +70,7 @@ describe("the balance", () => {
     expect(balance.days.filter((day) => day.allDone)).toHaveLength(DAYS_PER_SKIP);
   });
 
-  test("a hold reserves a skip without deducting it, and un-marking is free", async () => {
+  it("a hold reserves a skip without deducting it, and un-marking is free", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -110,7 +108,7 @@ describe("the balance", () => {
     expect(released.available).toBe(1);
   });
 
-  test("the deduction is real only at close", async () => {
+  it("the deduction is real only at close", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -141,7 +139,7 @@ describe("the balance", () => {
     expect(spent.balance).toBe(0);
   });
 
-  test("a correction outside the horizon moves a rate and leaves the balance alone", async () => {
+  it("a correction outside the horizon moves a rate and leaves the balance alone", async () => {
     const l = await ledger("2026-01-15");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -179,7 +177,7 @@ describe("the balance", () => {
     expect(after.spent).toBe(before.spent);
   });
 
-  test("correcting a missed day inside the horizon re-earns its skip", async () => {
+  it("correcting a missed day inside the horizon re-earns its skip", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -226,7 +224,7 @@ describe("buying a skip", () => {
     return routineId;
   }
 
-  test("refuses a skip nothing paid for, and leaves no trace of it", async () => {
+  it("refuses a skip nothing paid for, and leaves no trace of it", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -245,12 +243,14 @@ describe("buying a skip", () => {
 
     // The purchase is refused before the Mark is written, so the audit log has
     // nothing in it and the cell is exactly as it was.
-    expect(await as.query(api.marks.forCell, { date: "2026-03-10", routineId })).toEqual([]);
+    await expect(as.query(api.marks.forCell, { date: "2026-03-10", routineId })).resolves.toEqual(
+      [],
+    );
     const day = await as.query(api.days.get, { date: "2026-03-10" });
     expect(day.roster[0]).toMatchObject({ outcome: "missed", marked: false });
   });
 
-  test("a hold exhausts the balance, and releasing it lets the skip move", async () => {
+  it("a hold exhausts the balance, and releasing it lets the skip move", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const routineId = await banked(l);
@@ -269,7 +269,7 @@ describe("buying a skip", () => {
     expect(day.roster[0]!.outcome).toBe("skipped");
   });
 
-  test("re-marking a cell that is already skipped costs nothing", async () => {
+  it("re-marking a cell that is already skipped costs nothing", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const routineId = await banked(l);
@@ -287,7 +287,7 @@ describe("buying a skip", () => {
     expect((await as.query(api.balance.current, {})).spent).toBe(1);
   });
 
-  test("refuses a skip on a date the horizon cannot charge", async () => {
+  it("refuses a skip on a date the horizon cannot charge", async () => {
     const l = await ledger("2026-01-15");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -309,7 +309,7 @@ describe("buying a skip", () => {
     ).rejects.toThrow(/2026-01-20 is outside the 30-day Balance horizon/u);
   });
 
-  test("refuses to close a held skip whose all-done days have aged out", async () => {
+  it("refuses to close a held skip whose all-done days have aged out", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const routineId = await banked(l);
@@ -338,7 +338,7 @@ describe("buying a skip", () => {
 });
 
 describe("the retirement counter", () => {
-  test("counts consecutive scheduled misses and offers retirement at close", async () => {
+  it("counts consecutive scheduled misses and offers retirement at close", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -360,7 +360,7 @@ describe("the retirement counter", () => {
     expect(lastClose!.suggestions).toEqual([{ routineId, consecutive: RETIREMENT_THRESHOLD }]);
   });
 
-  test("steps over paused days rather than resetting on them", async () => {
+  it("steps over paused days rather than resetting on them", async () => {
     const l = await ledger("2026-03-01");
     const { as } = l;
     const { routineId } = await as.mutation(api.routines.create, {
@@ -385,7 +385,7 @@ describe("the retirement counter", () => {
 });
 
 describe("the eager scope rule", () => {
-  test("an oversized repair fails rather than doing part of the work", async () => {
+  it("an oversized repair fails rather than doing part of the work", async () => {
     const { as } = await ledger("2026-03-01");
     await expect(
       as.mutation(api.repair.range, { from: "2026-01-01", to: "2026-03-01" }),

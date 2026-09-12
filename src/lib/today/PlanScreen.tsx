@@ -1,4 +1,5 @@
 import { valibotResolver } from "@hookform/resolvers/valibot";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as v from "valibot";
 
@@ -7,6 +8,14 @@ import {
   BarItem,
   BarSpacer,
   Button,
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldError,
   FieldLabel,
@@ -39,6 +48,8 @@ interface Props {
  */
 export function PlanScreen({ plan, onDone }: Props) {
   const { routines } = plan;
+  const [removing, setRemoving] = useState<RoutineView | null>(null);
+  const handleRemove = plan.remove;
 
   return (
     <Panel className="min-h-0 flex-1">
@@ -65,12 +76,7 @@ export function PlanScreen({ plan, onDone }: Props) {
           </PanelBody>
         ) : (
           routines.map((routine, index) => (
-            <PlanRow
-              key={routine._id}
-              index={index}
-              routine={routine}
-              onRemove={(target) => plan.remove(target)}
-            />
+            <PlanRow key={routine._id} index={index} routine={routine} onRemove={setRemoving} />
           ))
         )}
       </div>
@@ -84,6 +90,13 @@ export function PlanScreen({ plan, onDone }: Props) {
           <span className="hidden sm:inline">ESC · </span>back to tracking
         </Button>
       </Bar>
+      {removing ? (
+        <RemoveRoutineDialog
+          routine={removing}
+          onRemove={handleRemove}
+          onClose={() => setRemoving(null)}
+        />
+      ) : null}
     </Panel>
   );
 }
@@ -91,7 +104,7 @@ export function PlanScreen({ plan, onDone }: Props) {
 interface PlanRowProps {
   index: number;
   routine: RoutineView;
-  onRemove: (routine: RoutineView) => Promise<void>;
+  onRemove: (routine: RoutineView) => void;
 }
 
 function PlanRow({ index, routine, onRemove }: PlanRowProps) {
@@ -104,12 +117,86 @@ function PlanRow({ index, routine, onRemove }: PlanRowProps) {
         <Button
           variant="ghost"
           className="min-h-11 w-full sm:min-h-7 sm:w-auto"
-          onClick={() => void onRemove(routine)}
+          onClick={() => onRemove(routine)}
         >
           remove
         </Button>
       </RowActions>
     </Row>
+  );
+}
+
+interface RemoveRoutineDialogProps {
+  routine: RoutineView;
+  onRemove: (routine: RoutineView) => Promise<void>;
+  onClose: () => void;
+}
+
+/** Retirement needs a deliberate second action because its schedule change is today-forward. */
+function RemoveRoutineDialog({ routine, onRemove, onClose }: RemoveRoutineDialogProps) {
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [refusal, setRefusal] = useState<string | null>(null);
+
+  const remove = async () => {
+    if (isRemoving) return;
+    setIsRemoving(true);
+    setRefusal(null);
+    try {
+      await onRemove(routine);
+      onClose();
+    } catch (error) {
+      setRefusal(errorText(error));
+      setIsRemoving(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !isRemoving) onClose();
+      }}
+    >
+      <DialogContent className="flex items-end justify-center bg-transparent p-3 data-open:animate-cut sm:items-center sm:p-6">
+        <Panel className="max-h-full w-full max-w-115 bg-background">
+          <DialogHeader>
+            <Text className="px-2.5 py-1.25" caps tracking="widest">
+              REMOVE ROUTINE
+            </Text>
+          </DialogHeader>
+          <DialogBody>
+            <DialogTitle className="mb-1.5">remove --confirm</DialogTitle>
+            <DialogDescription render={<Text as="p" tone="muted" />}>
+              Retire &quot;{routine.name}&quot; after today? It leaves the plan now, but
+              today&apos;s instance and its history stay in the ledger.
+            </DialogDescription>
+            {refusal ? (
+              <Text as="p" tone="record" className="tone-missed mt-2.5" role="alert">
+                ! {refusal}
+              </Text>
+            ) : null}
+          </DialogBody>
+          <DialogFooter>
+            <DialogClose
+              render={
+                <Button variant="ghost" disabled={isRemoving}>
+                  cancel
+                </Button>
+              }
+            />
+            <BarSpacer />
+            <Button
+              variant="accent"
+              aria-label="remove routine"
+              loading={isRemoving}
+              onClick={() => void remove()}
+            >
+              remove routine
+            </Button>
+          </DialogFooter>
+        </Panel>
+      </DialogContent>
+    </Dialog>
   );
 }
 

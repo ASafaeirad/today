@@ -81,12 +81,14 @@ export function PlanScreen({ plan, onDone }: Props) {
         )}
       </div>
       <DraftField onAdd={(name) => plan.add(name)} />
+      {/* The way out of the mode. A pointer has the key and the count beside it;
+          a thumb gets the full width of the bar to land on. */}
       <Bar placement="bottom">
-        <BarItem tone="muted" divided={false}>
+        <BarItem tone="muted" divided={false} className="hidden sm:flex">
           {routines?.length ?? 0} routines · each runs every day
         </BarItem>
-        <BarSpacer />
-        <Button size="sm" className="min-h-11 sm:min-h-6" onClick={onDone}>
+        <BarSpacer className="hidden sm:block" />
+        <Button size="sm" className="min-h-11.5 w-full sm:min-h-6 sm:w-auto" onClick={onDone}>
           <span className="hidden sm:inline">ESC · </span>back to tracking
         </Button>
       </Bar>
@@ -112,11 +114,13 @@ function PlanRow({ index, routine, onRemove }: PlanRowProps) {
     <Row status="open">
       <RowIndex>{pad(index + 1)}</RowIndex>
       <RowName>{routine.name}</RowName>
-      <RowStatus>daily</RowStatus>
-      <RowActions>
+      {/* Every routine is daily, so the word is a column heading's worth of
+          information: the wider screen has room to state it, the phone does not. */}
+      <RowStatus className="hidden sm:inline-block">daily</RowStatus>
+      <RowActions className="flex justify-end">
         <Button
           variant="ghost"
-          className="min-h-11 w-full sm:min-h-7 sm:w-auto"
+          className="min-h-11 min-w-22.5 sm:min-h-7 sm:min-w-0"
           onClick={() => onRemove(routine)}
         >
           remove

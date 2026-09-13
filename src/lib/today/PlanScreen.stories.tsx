@@ -122,3 +122,20 @@ export const RemovalRefused = meta.story({
     await expect(screen.getByRole("button", { name: "cancel" })).toBeEnabled();
   },
 });
+
+/**
+ * On a phone the line carries the name and the one operation on it. Every
+ * routine is daily, so that word is a column heading's worth of information and
+ * the narrow screen spends its width on the name instead.
+ */
+export const PhoneWithRoutine = meta.story({
+  globals: { viewport: { value: "mobile2" } },
+  args: {
+    plan: { routines: [morningPages], add, remove },
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Morning pages")).toBeInTheDocument();
+    await expect(canvas.getByText("daily")).not.toBeVisible();
+    await expect(canvas.getByRole("button", { name: "remove" })).toBeInTheDocument();
+  },
+});

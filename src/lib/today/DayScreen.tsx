@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import type { MarkOutcome } from "#domain/outcome";
 
 import { Heading, Panel, PanelBody, RowHeader, Text } from "#ui";
@@ -20,6 +22,17 @@ interface Props {
 
 /** Track mode: the day's roster, and the three keys that resolve each line. */
 export function DayScreen({ day, date, isToday, cursor, rowRefs, onCursor, onMark }: Props) {
+  // Which line has its keys open under it, on a screen too narrow to carry them
+  // on every line at once. One at a time, and never across a change of day: the
+  // roster underneath it is a different one.
+  const [openRow, setOpenRow] = useState<number | null>(null);
+  const [openOn, setOpenOn] = useState(date);
+
+  if (openOn !== date) {
+    setOpenOn(date);
+    setOpenRow(null);
+  }
+
   if (day === undefined) return <Boot date={date} />;
 
   if (day.roster.length === 0) {
@@ -41,11 +54,13 @@ export function DayScreen({ day, date, isToday, cursor, rowRefs, onCursor, onMar
 
   return (
     <Panel className="min-h-0 flex-1">
-      <RowHeader>
+      {/* The column names are a pointer's guide to a line it can read whole.
+          A phone gets the line and nothing above it. */}
+      <RowHeader className="hidden sm:grid">
         <span>#</span>
         <span>routine</span>
-        <span className="hidden sm:block">state</span>
-        <span className="hidden justify-self-end sm:block">set</span>
+        <span>state</span>
+        <span className="justify-self-end">set</span>
       </RowHeader>
       <div data-sealed={day.sealed || undefined} className="min-h-0 flex-1 overflow-auto">
         {day.roster.map((entry, index) => (
@@ -59,8 +74,18 @@ export function DayScreen({ day, date, isToday, cursor, rowRefs, onCursor, onMar
             status={rowStatus(entry)}
             current={index === cursor}
             sealed={day.sealed}
+            open={index === openRow}
             onFocus={() => onCursor(index)}
-            onMark={(outcome) => onMark(entry, outcome)}
+            onOpen={() => {
+              onCursor(index);
+              setOpenRow(openRow === index ? null : index);
+            }}
+            onMark={(outcome) => {
+              // A verdict closes the keys that took it: the line has its answer,
+              // and the next one is what the thumb is reaching for.
+              setOpenRow(null);
+              onMark(entry, outcome);
+            }}
           />
         ))}
       </div>

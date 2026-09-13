@@ -9,7 +9,7 @@ const rowGridVariants = cva("grid items-center px-2.5", {
     /* The full record, the bare listing a queue of names is, or one day of
        the log written as a single line. */
     layout: {
-      record: "grid-record sm:grid-record-full",
+      record: "grid-record-phone sm:grid-record-full",
       queue: "grid-record",
       log: "grid-log sm:grid-log-full",
     },
@@ -108,13 +108,7 @@ export function RowName({ className, ...props }: React.ComponentProps<"span">) {
 }
 
 export function RowStatus({ className, ...props }: BadgeProps) {
-  return (
-    <Badge
-      data-slot="row-status"
-      className={cn("col-start-2 sm:col-start-3", className)}
-      {...props}
-    />
-  );
+  return <Badge data-slot="row-status" className={cn("col-start-3", className)} {...props} />;
 }
 
 export function RowActions({ className, ...props }: React.ComponentProps<"div">) {
@@ -122,7 +116,9 @@ export function RowActions({ className, ...props }: React.ComponentProps<"div">)
     <div
       data-slot="row-actions"
       className={cn(
-        "col-span-full my-0.75 justify-self-stretch sm:col-auto sm:my-0 sm:justify-self-end",
+        // Under the line on a phone, bled out to the edges of the panel so the
+        // operations read as a drawer the line opened rather than as part of it.
+        "-mx-2.5 col-span-full justify-self-stretch border-t border-border sm:col-auto sm:mx-0 sm:justify-self-end sm:border-t-0",
         className,
       )}
       {...props}

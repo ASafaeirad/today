@@ -128,6 +128,14 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
   };
   const stepDay = (delta: number) => goToDate(addDays(date, delta));
 
+  // Plan mode holds a focused field, and a confirmation over it once a routine
+  // is being removed. A day key there would move the ground under both, so the
+  // keyboard leaves plan mode alone — the strip still navigates by click, and
+  // ESC is one keystroke away from a mode these keys do belong to.
+  const dayKey = (move: () => void) => () => {
+    if (mode !== "plan") move();
+  };
+
   const mark = (entry: RosterEntry, outcome: MarkOutcome) => {
     if (!day || day.sealed) return;
     setNotice(null);
@@ -182,9 +190,9 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
       { hotkey: "M", callback: () => markCurrent("missed") },
       { hotkey: "S", callback: () => markCurrent("skipped") },
       { hotkey: "Z", callback: () => marking && roster.length > 0 && seal.begin(date) },
-      { hotkey: "[", callback: () => stepDay(-1) },
-      { hotkey: "]", callback: () => stepDay(1) },
-      { hotkey: "T", callback: () => goToDate(today) },
+      { hotkey: "[", callback: dayKey(() => stepDay(-1)) },
+      { hotkey: "]", callback: dayKey(() => stepDay(1)) },
+      { hotkey: "T", callback: dayKey(() => goToDate(today)) },
     ],
     { enabled: seal.date === null },
   );

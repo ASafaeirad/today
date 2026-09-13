@@ -36,9 +36,13 @@ interface DayStripProps {
  * The recent past, under the chrome on every screen: one cell per date, each
  * saying what that day came to and whether it was ever sealed.
  *
+ * Today is the first cell and history recedes to the right, which is the order
+ * the owner is standing in — the day being worked is where the eye lands, and
+ * looking back is a move away from it rather than a scan toward it.
+ *
  * Looking back is a first-class move rather than a report you go and open, so
  * the strip is always on screen and every cell is a way into that day. A phone
- * has room for the near end of it; the step keys reach the rest either way.
+ * has room for the days nearest today; the step keys reach the rest either way.
  */
 export function DayStrip({
   days,
@@ -48,9 +52,26 @@ export function DayStrip({
   canStepBack,
   canStepForward,
 }: DayStripProps) {
+  // The window is read oldest first everywhere else; only the strip turns it
+  // around, because only the strip is a picture of it.
+  const cells = days === undefined ? undefined : [...days].reverse();
+
   return (
     <div className="flex items-stretch overflow-hidden border-b border-border">
-      <StepButton direction={-1} disabled={!canStepBack} onStep={onStep} />
+      <StepButton direction={1} disabled={!canStepForward} onStep={onStep} />
+      <div className="flex min-w-0 flex-1 border-x border-border">
+        {cells?.map((summary, index) => (
+          <DayCell
+            key={summary.date}
+            summary={summary}
+            current={summary.date === date}
+            /* The far end of the window is desktop-only: a phone cell narrower
+               than a fingertip is decoration, not a control. */
+            onPhone={index < PHONE_STRIP_DAYS}
+            onPick={onPick}
+          />
+        ))}
+      </div>
       <Text
         size="xs"
         tone="subtle"
@@ -60,20 +81,7 @@ export function DayStrip({
       >
         last {STRIP_DAYS}
       </Text>
-      <div className="flex min-w-0 flex-1 border-l border-border">
-        {days?.map((summary, index) => (
-          <DayCell
-            key={summary.date}
-            summary={summary}
-            current={summary.date === date}
-            /* The far end of the window is desktop-only: a phone cell narrower
-               than a fingertip is decoration, not a control. */
-            nearEnd={index >= days.length - PHONE_STRIP_DAYS}
-            onPick={onPick}
-          />
-        ))}
-      </div>
-      <StepButton direction={1} disabled={!canStepForward} onStep={onStep} />
+      <StepButton direction={-1} disabled={!canStepBack} onStep={onStep} />
     </div>
   );
 }
@@ -84,7 +92,13 @@ interface StepButtonProps {
   onStep: (delta: number) => void;
 }
 
-/** One day back or forward, at either end of the strip it moves over. */
+/**
+ * One day back or forward, at either end of the strip it moves over.
+ *
+ * The glyph follows the strip rather than the calendar: today sits at the left
+ * and history runs right, so the button that steps back into it points right
+ * and stands at that end. The label keeps saying which date it means.
+ */
 function StepButton({ direction, disabled, onStep }: StepButtonProps) {
   const back = direction === -1;
   const label = back ? "previous day" : "next day";
@@ -97,9 +111,9 @@ function StepButton({ direction, disabled, onStep }: StepButtonProps) {
       title={label}
       disabled={disabled}
       onClick={() => onStep(direction)}
-      className={cn("min-h-11 min-w-11 sm:min-h-7 sm:min-w-9", !back && "border-l border-border")}
+      className="min-h-11 min-w-11 sm:min-h-7 sm:min-w-9"
     >
-      {back ? "←" : "→"}
+      {back ? "→" : "←"}
     </Button>
   );
 }
@@ -107,11 +121,11 @@ function StepButton({ direction, disabled, onStep }: StepButtonProps) {
 interface DayCellProps {
   summary: DaySummary;
   current: boolean;
-  nearEnd: boolean;
+  onPhone: boolean;
   onPick: (date: LocalDate) => void;
 }
 
-function DayCell({ summary, current, nearEnd, onPick }: DayCellProps) {
+function DayCell({ summary, current, onPhone, onPick }: DayCellProps) {
   const title = dayTitle(summary);
 
   return (
@@ -128,7 +142,7 @@ function DayCell({ summary, current, nearEnd, onPick }: DayCellProps) {
           : // A day that was never sealed is hatched wherever it is drawn: the
             // record is not closed, and the strip should not read as if it were.
             cn("hover:bg-panel", !summary.sealed && "tone-missed tone-hatch"),
-        !nearEnd && "hidden sm:flex",
+        !onPhone && "hidden sm:flex",
       )}
     >
       <span

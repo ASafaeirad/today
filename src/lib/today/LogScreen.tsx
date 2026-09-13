@@ -1,3 +1,6 @@
+import { useHotkeys } from "@tanstack/react-hotkeys";
+import { useEffect, useRef, useState } from "react";
+
 import type { LocalDate } from "#domain/date";
 
 import { cn } from "#lib/cn";
@@ -26,7 +29,7 @@ interface LogScreenProps {
   /** The window, oldest first. Undefined while the overview is still reading. */
   days: DaySummary[] | undefined;
   today: LocalDate;
-  /** The day the console is parked on, so the log says where returning lands. */
+  /** The day the console is parked on, which seeds the log cursor. */
   date: LocalDate;
   onOpen: (date: LocalDate) => void;
 }
@@ -39,6 +42,39 @@ interface LogScreenProps {
  * the mode you leave the console sitting in.
  */
 export function LogScreen({ days, today, date, onOpen }: LogScreenProps) {
+  const orderedDays = days?.slice().reverse() ?? [];
+  const [cursorDate, setCursorDate] = useState<LocalDate>(date);
+  const [parkedOn, setParkedOn] = useState<LocalDate>(date);
+  const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  if (parkedOn !== date) {
+    setParkedOn(date);
+    setCursorDate(date);
+  }
+
+  const foundCursor = orderedDays.findIndex((summary) => summary.date === cursorDate);
+  const cursor = Math.max(0, foundCursor);
+  const selected = orderedDays[cursor];
+
+  const stepCursor = (delta: number) => {
+    if (orderedDays.length === 0) return;
+    const next = Math.min(Math.max(0, cursor + delta), orderedDays.length - 1);
+    setCursorDate(orderedDays[next]!.date);
+  };
+
+  useHotkeys(
+    [
+      { hotkey: "J", callback: () => stepCursor(1) },
+      { hotkey: "K", callback: () => stepCursor(-1) },
+      { hotkey: "Enter", callback: () => selected && onOpen(selected.date) },
+    ],
+    { enabled: selected !== undefined, preventDefault: true },
+  );
+
+  useEffect(() => {
+    rowRefs.current[cursor]?.scrollIntoView({ block: "nearest" });
+  }, [cursor]);
+
   if (days === undefined) {
     return (
       <Panel className="min-h-0 flex-1">
@@ -65,18 +101,19 @@ export function LogScreen({ days, today, date, onOpen }: LogScreenProps) {
         <span className="justify-self-end">state</span>
       </RowHeader>
       <div className="min-h-0 flex-1 overflow-auto">
-        {days
-          .slice()
-          .reverse()
-          .map((summary) => (
-            <LogRow
-              key={summary.date}
-              summary={summary}
-              today={today}
-              current={summary.date === date}
-              onOpen={onOpen}
-            />
-          ))}
+        {orderedDays.map((summary, index) => (
+          <LogRow
+            key={summary.date}
+            ref={(node) => {
+              rowRefs.current[index] = node;
+            }}
+            summary={summary}
+            today={today}
+            selected={index === cursor}
+            onFocus={() => setCursorDate(summary.date)}
+            onOpen={onOpen}
+          />
+        ))}
       </div>
     </Panel>
   );
@@ -85,25 +122,35 @@ export function LogScreen({ days, today, date, onOpen }: LogScreenProps) {
 interface LogRowProps {
   summary: DaySummary;
   today: LocalDate;
-  current: boolean;
+  selected: boolean;
+  onFocus: () => void;
   onOpen: (date: LocalDate) => void;
 }
 
-function LogRow({ summary, today, current, onOpen }: LogRowProps) {
+function LogRow({
+  ref,
+  summary,
+  today,
+  selected,
+  onFocus,
+  onOpen,
+}: LogRowProps & { ref?: React.Ref<HTMLButtonElement> }) {
   const state = logState(summary, today);
 
   return (
     <button
+      ref={ref}
       type="button"
-      aria-current={current || undefined}
+      aria-current={selected || undefined}
+      data-current={selected || undefined}
       // The label replaces everything under it, and the bar is the one thing
       // here with no words of its own, so the counts it draws go in by hand.
       aria-label={logLineLabel(summary, today)}
+      onFocus={onFocus}
       onClick={() => onOpen(summary.date)}
       className={cn(
         rowGridVariants({ layout: "log" }),
-        // The day the console is parked on wears the same block cursor a
-        // roster row does, so the log says where leaving it would land.
+        // The selected day wears the same block cursor as a roster row.
         "w-full animate-cut gap-x-2.5 border-b border-border py-1.5 text-left transition-colors hover:bg-panel data-current:bg-panel data-current:outline-2 data-current:-outline-offset-2 data-current:outline-ring",
       )}
     >

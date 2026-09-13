@@ -106,6 +106,24 @@ export const Current = meta.story({
   },
 });
 
+/** J and K move the log cursor; Enter opens the selected day. */
+export const KeyboardNavigation = meta.story({
+  play: async ({ args, canvas }) => {
+    const september9 = canvas.getByRole("button", { name: /2026-09-09/u });
+    const september10 = canvas.getByRole("button", { name: /2026-09-10/u });
+
+    await userEvent.keyboard("jj");
+    await expect(september9).toHaveAttribute("aria-current", "true");
+    await expect(september9).toHaveAttribute("data-current", "true");
+
+    await userEvent.keyboard("k");
+    await expect(september10).toHaveAttribute("aria-current", "true");
+
+    await userEvent.keyboard("{Enter}");
+    await expect(args.onOpen).toHaveBeenCalledWith("2026-09-10");
+  },
+});
+
 /** Before the overview lands the log has nothing to print but its prompt. */
 export const Loading = meta.story({
   args: { days: undefined },

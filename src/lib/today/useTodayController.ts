@@ -2,21 +2,33 @@ import { useHotkeys } from "@tanstack/react-hotkeys";
 import { useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 
-import type { LocalDate } from "#domain/date";
 import type { MarkOutcome, Outcome } from "#domain/outcome";
 
 import { api } from "#convex/_generated/api";
+import { addDays, type LocalDate } from "#domain/date";
 
 import { errorText, rowStatus, type BalanceView, type DaySummary, type Mode } from "./console";
 import { useMarkInstance, type DayView, type RosterEntry } from "./ledger";
 import { useBacklog } from "./useBacklog";
 import { useBalance } from "./useBalance";
+import { useHistory, type History } from "./useHistory";
 import { useRoutinePlan, type RoutinePlan } from "./useRoutinePlan";
 import { useSealCeremony, type SealCeremony } from "./useSealCeremony";
 
 export interface TodayController {
   mode: Mode;
   enterMode: (mode: Mode) => void;
+  /** The local date on screen. Today, until the owner steps back. */
+  date: LocalDate;
+  /** True while that date is a past one: the console is looking back. */
+  lookingBack: boolean;
+  /** The window the strip draws and the step keys move over. */
+  history: History;
+  /** Opens a date, if the window covers it. Ignores anything outside it. */
+  goToDate: (date: LocalDate) => void;
+  stepDay: (delta: number) => void;
+  canStepBack: boolean;
+  canStepForward: boolean;
   day: DayView | undefined;
   roster: RosterEntry[];
   sealed: boolean;
@@ -67,12 +79,14 @@ function advance(roster: readonly RosterEntry[], from: number): number {
  */
 export function useTodayController(today: LocalDate, refs: TodayRefs): TodayController {
   const [mode, setMode] = useState<Mode>("track");
+  const [date, setDate] = useState<LocalDate>(today);
   const [cursorState, setCursorState] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
-  const announced = useRef(false);
+  const announcedFor = useRef<LocalDate | null>(null);
 
-  const day = useQuery(api.days.get, { date: today });
+  const history = useHistory(today);
+  const day = useQuery(api.days.get, { date });
   const plan = useRoutinePlan();
   const backlog = useBacklog();
   const balance = useBalance();
@@ -91,11 +105,28 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
 
   // Plan mode is an editing surface, so it opens with an empty slate: the
   // block cursor means nothing there and means the first open line on return.
+  //
+  // It also returns to today. A schedule edit is today-forward by definition,
+  // so a routine list read against a past date would be a list that date never
+  // had — plan mode has no business being open on a day that is already over.
   const enterMode = (next: Mode) => {
     setMode(next);
     setCursorState(null);
     setNotice(null);
+    if (next === "plan") setDate(today);
   };
+
+  // Nothing clamps here. A date the window does not reach is one the console
+  // cannot draw or summarize, and silently landing on a neighbouring day would
+  // be worse than not moving at all.
+  const goToDate = (next: LocalDate) => {
+    if (!history.covers(next)) return;
+    setMode("track");
+    setDate(next);
+    setCursorState(null);
+    setNotice(null);
+  };
+  const stepDay = (delta: number) => goToDate(addDays(date, delta));
 
   const mark = (entry: RosterEntry, outcome: MarkOutcome) => {
     if (!day || day.sealed) return;
@@ -111,15 +142,20 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
 
   // A day that has just sealed says so once, to whoever is listening rather
   // than looking. The stamp itself stays on screen for good.
+  //
+  // Only a day that sealed under the owner's hands is worth saying: the ref
+  // remembers which date was open when it was opened, so stepping onto a day
+  // that was already sealed reads as history rather than as an event.
   useEffect(() => {
-    if (!sealed) {
-      announced.current = false;
+    if (day === undefined) return;
+    if (!day.sealed) {
+      announcedFor.current = day.date;
       return;
     }
-    if (announced.current) return;
-    announced.current = true;
+    if (announcedFor.current !== day.date) return;
+    announcedFor.current = null;
     setAnnouncement("day sealed");
-  }, [sealed]);
+  }, [day]);
 
   const stepRow = (delta: number) => {
     if (!marking || roster.length === 0) return;
@@ -145,7 +181,10 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
       { hotkey: "D", callback: () => markCurrent("done") },
       { hotkey: "M", callback: () => markCurrent("missed") },
       { hotkey: "S", callback: () => markCurrent("skipped") },
-      { hotkey: "Z", callback: () => marking && roster.length > 0 && seal.begin(today) },
+      { hotkey: "Z", callback: () => marking && roster.length > 0 && seal.begin(date) },
+      { hotkey: "[", callback: () => stepDay(-1) },
+      { hotkey: "]", callback: () => stepDay(1) },
+      { hotkey: "T", callback: () => goToDate(today) },
     ],
     { enabled: seal.date === null },
   );
@@ -153,6 +192,13 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
   return {
     mode,
     enterMode,
+    date,
+    lookingBack: date !== today,
+    history,
+    goToDate,
+    stepDay,
+    canStepBack: date > history.earliest,
+    canStepForward: date < today,
     day,
     roster,
     sealed,

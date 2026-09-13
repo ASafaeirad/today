@@ -10,6 +10,8 @@ import { RosterRow } from "./RosterRow";
 interface Props {
   day: DayView | undefined;
   date: string;
+  /** A past day with an empty roster is a lapse, not a slate to fill in. */
+  isToday: boolean;
   cursor: number;
   rowRefs: React.RefObject<(HTMLDivElement | null)[]>;
   onCursor: (index: number) => void;
@@ -17,7 +19,7 @@ interface Props {
 }
 
 /** Track mode: the day's roster, and the three keys that resolve each line. */
-export function DayScreen({ day, date, cursor, rowRefs, onCursor, onMark }: Props) {
+export function DayScreen({ day, date, isToday, cursor, rowRefs, onCursor, onMark }: Props) {
   if (day === undefined) return <Boot date={date} />;
 
   if (day.roster.length === 0) {
@@ -25,10 +27,12 @@ export function DayScreen({ day, date, cursor, rowRefs, onCursor, onMark }: Prop
       <Panel className="min-h-0 flex-1">
         <PanelBody>
           <Heading as="h2" size="base" prompt>
-            today --empty
+            {isToday ? "today --empty" : `${date} --empty`}
           </Heading>
           <Text tone="muted">
-            no routines yet. switch to plan and name one — it runs every day. no schedule, no setup.
+            {isToday
+              ? "no routines yet. switch to plan and name one — it runs every day. no schedule, no setup."
+              : "nothing was scheduled on this day. there is nothing here to resolve or to seal."}
           </Text>
         </PanelBody>
       </Panel>

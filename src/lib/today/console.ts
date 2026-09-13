@@ -5,7 +5,7 @@ import type { Outcome } from "#domain/outcome";
  */
 
 import { MAX_EAGER_DAYS } from "#domain/constants";
-import { dayOfWeek, type LocalDate } from "#domain/date";
+import { addDays, datesBetween, dayOfWeek, type LocalDate } from "#domain/date";
 
 export type RowStatus = Outcome | "open";
 
@@ -32,14 +32,74 @@ export const OPS = [
 
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
+/** `fri` — the weekday the strip prints under each date. */
+export function weekday(date: LocalDate): string {
+  return WEEKDAYS[dayOfWeek(date)]!;
+}
+
 /** `2026-09-11 · fri` — the date the top bar carries. */
 export function dayLabel(date: LocalDate): string {
-  return `${date} · ${WEEKDAYS[dayOfWeek(date)]}`;
+  return `${date} · ${weekday(date)}`;
 }
 
 /** `09-11 fri` — the same date where the bar has no room for the year. */
 export function shortDayLabel(date: LocalDate): string {
-  return `${date.slice(5)} ${WEEKDAYS[dayOfWeek(date)]}`;
+  return `${date.slice(5)} ${weekday(date)}`;
+}
+
+/**
+ * How far back the console can look, today included.
+ *
+ * Looking back is bounded rather than endless because every date in the window
+ * is read eagerly to draw the strip: this is the number of cells under the
+ * chrome, and it is what `[` and `]` may step over.
+ */
+export const STRIP_DAYS = 14;
+
+/** How much of the strip a phone has room for, taken off the near end. */
+export const PHONE_STRIP_DAYS = 7;
+
+/** The window the console can open, oldest first, ending at today. */
+export function lookbackDates(today: LocalDate, span: number = STRIP_DAYS): LocalDate[] {
+  return datesBetween(addDays(today, -(span - 1)), today);
+}
+
+/**
+ * `4/6` — the day's record at a glance, or an em dash where the schedule put
+ * nothing. A run of zeroes and a lapse are different facts, and a cell reading
+ * `0/0` would print the second as the first.
+ */
+export function dayTally(summary: DaySummary): string {
+  if (summary.scheduled === 0) return "—";
+  return `${summary.done}/${summary.scheduled}`;
+}
+
+/** Which meaning the tally carries: the verdict the day arrived at, if any. */
+export function dayTone(summary: DaySummary): "done" | "missed" | "neutral" | "empty" {
+  if (summary.scheduled === 0) return "empty";
+  if (summary.open > 0) return "missed";
+  return summary.done === summary.scheduled ? "done" : "neutral";
+}
+
+/** What a strip cell says when it is pointed at rather than read. */
+export function dayTitle(summary: DaySummary): string {
+  const head = `${dayLabel(summary.date)} · `;
+  if (summary.scheduled === 0) return `${head}nothing scheduled`;
+  if (summary.sealed) return `${head}sealed ${summary.done}/${summary.scheduled} done`;
+  return `${head}never sealed · ${summary.open} open`;
+}
+
+/**
+ * What a past day is once it is open: a record that can no longer be touched,
+ * or one that is still every bit as markable as today.
+ */
+export function lookbackNote(sealed: boolean, open: number): string {
+  return sealed ? "sealed record · read only" : `never sealed · ${open} open — still editable`;
+}
+
+/** The seal says which day it would close, once that is no longer today. */
+export function sealCta(date: LocalDate, today: LocalDate): string {
+  return date === today ? "SEAL THE DAY" : `SEAL ${date}`;
 }
 
 /**

@@ -4,9 +4,15 @@ import {
   backlogLine,
   balanceLine,
   dayLabel,
+  dayTally,
+  dayTitle,
+  dayTone,
   errorText,
+  lookbackDates,
+  lookbackNote,
   nudgeDates,
   rowStatus,
+  sealCta,
   sealStamp,
   shortDayLabel,
   type DaySummary,
@@ -74,4 +80,46 @@ it("a refusal is reduced to the sentence the mutation gave", () => {
     "A sealed day is permanent.",
   );
   expect(errorText("plain")).toBe("plain");
+});
+
+it("the lookback window ends at today and reaches back over the span", () => {
+  expect(lookbackDates("2026-09-11", 3)).toEqual(["2026-09-09", "2026-09-10", "2026-09-11"]);
+  expect(lookbackDates("2026-03-01", 2)).toEqual(["2026-02-28", "2026-03-01"]);
+  expect(lookbackDates("2026-09-11", 14)).toHaveLength(14);
+});
+
+it("a strip cell prints its record, and an em dash where there was none", () => {
+  expect(dayTally(summary({ date: "2026-09-10", scheduled: 6, done: 4, missed: 2 }))).toBe("4/6");
+  // A lapse is not a run of zeroes: there was nothing to do, not nothing done.
+  expect(dayTally(summary({ date: "2026-09-10" }))).toBe("—");
+});
+
+it("a cell's ink is the verdict the day arrived at, if it arrived at one", () => {
+  expect(dayTone(summary({ date: "2026-09-10", scheduled: 6, done: 6 }))).toBe("done");
+  expect(dayTone(summary({ date: "2026-09-10", scheduled: 6, done: 4, missed: 2 }))).toBe(
+    "neutral",
+  );
+  // Anything still owed outranks the rest of the tally: the day is not finished.
+  expect(dayTone(summary({ date: "2026-09-10", scheduled: 6, done: 5, open: 1 }))).toBe("missed");
+  expect(dayTone(summary({ date: "2026-09-10" }))).toBe("empty");
+});
+
+it("a cell says what it is when pointed at, sealed or not", () => {
+  expect(
+    dayTitle(summary({ date: "2026-09-10", scheduled: 6, done: 4, missed: 2, sealed: true })),
+  ).toBe("2026-09-10 · thu · sealed 4/6 done");
+  expect(dayTitle(summary({ date: "2026-09-10", scheduled: 6, done: 3, open: 3 }))).toBe(
+    "2026-09-10 · thu · never sealed · 3 open",
+  );
+  expect(dayTitle(summary({ date: "2026-09-10" }))).toBe("2026-09-10 · thu · nothing scheduled");
+});
+
+it("an unsealed past day is still live, and a sealed one is behind glass", () => {
+  expect(lookbackNote(false, 3)).toBe("never sealed · 3 open — still editable");
+  expect(lookbackNote(true, 0)).toBe("sealed record · read only");
+});
+
+it("the seal names the day it would close, once that is not today", () => {
+  expect(sealCta("2026-09-11", "2026-09-11")).toBe("SEAL THE DAY");
+  expect(sealCta("2026-09-08", "2026-09-11")).toBe("SEAL 2026-09-08");
 });

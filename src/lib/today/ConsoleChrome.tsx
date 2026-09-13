@@ -88,6 +88,36 @@ export function PlanBanner() {
   );
 }
 
+interface LookbackBarProps {
+  date: LocalDate;
+  /** What this day is now: a closed record, or one still owing verdicts. */
+  note: string;
+  onToday: () => void;
+}
+
+/**
+ * The banner a past day wears, so nothing below it is mistaken for today.
+ *
+ * It says which day and what may still be done to it, because an unsealed past
+ * day is the same live track screen and a sealed one is a record behind glass —
+ * the screens are otherwise identical.
+ */
+export function LookbackBar({ date, note, onToday }: LookbackBarProps) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-chrome px-2.5 py-1.5">
+      <Text size="xs" tracking="widest" caps>
+        ← looking back · {dayLabel(date)}
+      </Text>
+      <Text tone="muted" size="xs" className="min-w-0 flex-1 truncate">
+        {note}
+      </Text>
+      <Button size="sm" className="min-h-11 sm:min-h-6" onClick={onToday}>
+        <span className="hidden sm:inline">T · </span>return to today
+      </Button>
+    </div>
+  );
+}
+
 interface BacklogBarProps {
   summary: DaySummary;
   onResolve: () => void;
@@ -140,6 +170,8 @@ interface ProgressLineProps {
   balance: BalanceView | undefined;
   /** False on a day with nothing to seal, and on one already sealed. */
   canSeal: boolean;
+  /** False while looking back, where the line is not about today at all. */
+  isToday: boolean;
   onSeal: () => void;
 }
 
@@ -154,6 +186,7 @@ export function TrackLine({
   open,
   balance,
   canSeal,
+  isToday,
   onSeal,
 }: ProgressLineProps) {
   return (
@@ -165,7 +198,7 @@ export function TrackLine({
       <CommandLineValue>
         {resolved}/{scheduled}
       </CommandLineValue>{" "}
-      resolved today · <CommandLineValue>{open}</CommandLineValue> open
+      resolved {isToday ? "today" : "that day"} · <CommandLineValue>{open}</CommandLineValue> open
       {balance && (
         <span className="hidden sm:inline">
           {" · skip bank "}
@@ -216,6 +249,8 @@ interface FooterProps {
   sealed: boolean;
   marking: boolean;
   canSeal: boolean;
+  /** `SEAL THE DAY` on today, and the date itself on any other day. */
+  sealLabel: string;
   onSeal: () => void;
 }
 
@@ -229,7 +264,7 @@ function Keys({ keys }: { keys: readonly string[] }) {
   );
 }
 
-export function ConsoleFooter({ mode, sealed, marking, canSeal, onSeal }: FooterProps) {
+export function ConsoleFooter({ mode, sealed, marking, canSeal, sealLabel, onSeal }: FooterProps) {
   return (
     <Bar placement="bottom">
       {mode === "plan" ? (
@@ -237,6 +272,10 @@ export function ConsoleFooter({ mode, sealed, marking, canSeal, onSeal }: Footer
           back to track mode
         </BarItem>
       ) : null}
+      {/* Stepping days works on a sealed day too, so this legend never hides. */}
+      <BarItem tone="muted" label={<Keys keys={["[", "]"]} />} className="hidden sm:flex">
+        day
+      </BarItem>
       {marking ? (
         <>
           <BarItem tone="muted" label={<Keys keys={["J", "K"]} />} className="hidden sm:flex">
@@ -263,7 +302,8 @@ export function ConsoleFooter({ mode, sealed, marking, canSeal, onSeal }: Footer
           disabled={!canSeal}
           onClick={onSeal}
         >
-          <span className="hidden sm:inline">Z · </span>SEAL THE DAY
+          <span className="hidden sm:inline">Z · </span>
+          {sealLabel}
         </Button>
       ) : null}
     </Bar>

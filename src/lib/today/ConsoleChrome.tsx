@@ -273,7 +273,7 @@ export function ConsoleFooter({ mode, sealed, marking, canSeal, sealLabel, onSea
         </BarItem>
       ) : null}
       {/* Stepping days works on a sealed day too, so this legend never hides. */}
-      <BarItem tone="muted" label={<Keys keys={["[", "]"]} />} className="hidden sm:flex">
+      <BarItem tone="muted" label={<Keys keys={["H", "L"]} />} className="hidden sm:flex">
         day
       </BarItem>
       {marking ? (

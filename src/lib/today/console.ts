@@ -9,8 +9,11 @@ import { addDays, datesBetween, dayOfWeek, type LocalDate } from "#domain/date";
 
 export type RowStatus = Outcome | "open";
 
-/** Track marks and seals the day; plan edits the list and does neither. */
-export type Mode = "track" | "plan";
+/**
+ * Track marks and seals the day; plan edits the list and does neither; log
+ * reads the record of every day in the window and writes nothing at all.
+ */
+export type Mode = "track" | "plan" | "log";
 
 export interface DaySummary {
   date: LocalDate;
@@ -59,8 +62,17 @@ export const STRIP_DAYS = 14;
 /** How much of the strip a phone has room for, taken off the near end. */
 export const PHONE_STRIP_DAYS = 7;
 
+/**
+ * How many days the log lists, and so how far back the console reaches.
+ *
+ * The log is the whole window written out, one line per date, while the strip
+ * is the near end of the same window drawn small. One read serves both, which
+ * is why this is the number H and L may step over.
+ */
+export const LOG_DAYS = 21;
+
 /** The window the console can open, oldest first, ending at today. */
-export function lookbackDates(today: LocalDate, span: number = STRIP_DAYS): LocalDate[] {
+export function lookbackDates(today: LocalDate, span: number = LOG_DAYS): LocalDate[] {
   return datesBetween(addDays(today, -(span - 1)), today);
 }
 
@@ -100,6 +112,72 @@ export function lookbackNote(sealed: boolean, open: number): string {
 /** The seal says which day it would close, once that is no longer today. */
 export function sealCta(date: LocalDate, today: LocalDate): string {
   return date === today ? "SEAL THE DAY" : `SEAL ${date}`;
+}
+
+/**
+ * Where a day stands in the log. Sealed is the only final answer: today is
+ * open because it is not late yet, and a past day that was never closed is
+ * unsealed for as long as the owner leaves it that way.
+ */
+export function logState(summary: DaySummary, today: LocalDate): string {
+  if (summary.scheduled === 0) return "—";
+  if (summary.sealed) return "sealed";
+  return summary.date >= today ? "open" : "unsealed";
+}
+
+export interface RecordSegment {
+  outcome: RowStatus;
+  count: number;
+}
+
+/**
+ * The day's record as proportions of one bar, in the order a record is read.
+ * Outcomes nothing landed on are left out rather than drawn as slivers.
+ */
+export function recordSegments(summary: DaySummary): RecordSegment[] {
+  return (["done", "missed", "skipped", "open"] as const)
+    .map((outcome) => ({ outcome, count: summary[outcome] }))
+    .filter((segment) => segment.count > 0);
+}
+
+export interface LogSummary {
+  /** Days in the window whose record is closed for good. */
+  sealed: number;
+  /** Days in the window that had anything on them at all. */
+  scheduled: number;
+  /** Past days still owing a seal. */
+  awaiting: number;
+  /** Sealed days running back from the end of the window. */
+  streak: number;
+}
+
+/**
+ * What the log's status line counts.
+ *
+ * The streak runs back from the newest date and stops at the first day that
+ * was owed a seal and never got one. Today does not break it — it is not late
+ * until it is over — and neither does a day the schedule put nothing on, which
+ * had nothing to seal in the first place.
+ */
+export function logSummary(days: readonly DaySummary[], today: LocalDate): LogSummary {
+  const summary: LogSummary = { sealed: 0, scheduled: 0, awaiting: 0, streak: 0 };
+  let running = true;
+
+  for (const day of days) {
+    if (day.scheduled === 0) continue;
+    summary.scheduled += 1;
+    if (day.sealed) summary.sealed += 1;
+    else if (day.date < today) summary.awaiting += 1;
+  }
+
+  for (let index = days.length - 1; index >= 0 && running; index -= 1) {
+    const day = days[index]!;
+    if (day.scheduled === 0) continue;
+    if (day.sealed) summary.streak += 1;
+    else if (day.date < today) running = false;
+  }
+
+  return summary;
 }
 
 /**

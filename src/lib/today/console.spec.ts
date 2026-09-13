@@ -8,8 +8,11 @@ import {
   dayTitle,
   dayTone,
   errorText,
+  logState,
+  logSummary,
   lookbackDates,
   lookbackNote,
+  recordSegments,
   nudgeDates,
   rowStatus,
   sealCta,
@@ -122,4 +125,62 @@ it("an unsealed past day is still live, and a sealed one is behind glass", () =>
 it("the seal names the day it would close, once that is not today", () => {
   expect(sealCta("2026-09-11", "2026-09-11")).toBe("SEAL THE DAY");
   expect(sealCta("2026-09-08", "2026-09-11")).toBe("SEAL 2026-09-08");
+});
+
+it("the log says where a day stands, and sealed is the only final answer", () => {
+  const today = "2026-09-11";
+  expect(logState(summary({ date: today, scheduled: 6, open: 6 }), today)).toBe("open");
+  // Today is not late until it is over; a past day that was never closed is.
+  expect(logState(summary({ date: "2026-09-10", scheduled: 6, open: 6 }), today)).toBe("unsealed");
+  expect(logState(summary({ date: today, scheduled: 6, done: 6, sealed: true }), today)).toBe(
+    "sealed",
+  );
+  expect(logState(summary({ date: "2026-09-10" }), today)).toBe("—");
+});
+
+it("the record bar carries only the outcomes the day actually landed on", () => {
+  expect(
+    recordSegments(summary({ date: "2026-09-10", scheduled: 6, done: 4, skipped: 1, open: 1 })),
+  ).toEqual([
+    { outcome: "done", count: 4 },
+    { outcome: "skipped", count: 1 },
+    { outcome: "open", count: 1 },
+  ]);
+  expect(recordSegments(summary({ date: "2026-09-10" }))).toEqual([]);
+});
+
+it("the log counts what the window came to, and how much of it was closed", () => {
+  const today = "2026-09-11";
+  const counted = logSummary(
+    [
+      summary({ date: "2026-09-08", scheduled: 6, done: 6, sealed: true }),
+      summary({ date: "2026-09-09", scheduled: 6, open: 6 }),
+      summary({ date: "2026-09-10", scheduled: 6, done: 6, sealed: true }),
+      summary({ date: today, scheduled: 6, open: 6 }),
+    ],
+    today,
+  );
+  expect(counted).toEqual({ sealed: 2, scheduled: 4, awaiting: 1, streak: 1 });
+});
+
+it("the streak ends at the first day that was owed a seal and never got one", () => {
+  const today = "2026-09-11";
+  const days = [
+    summary({ date: "2026-09-07", scheduled: 6, done: 6, sealed: true }),
+    summary({ date: "2026-09-08", scheduled: 6, open: 6 }),
+    summary({ date: "2026-09-09", scheduled: 6, done: 6, sealed: true }),
+    // A day the schedule put nothing on had nothing to seal, so it neither
+    // counts toward the streak nor breaks it.
+    summary({ date: "2026-09-10" }),
+    summary({ date: today, scheduled: 6, open: 6 }),
+  ];
+  expect(logSummary(days, today).streak).toBe(1);
+
+  // Today still being open is not a break: it is not late yet.
+  const unbroken = [
+    summary({ date: "2026-09-09", scheduled: 6, done: 6, sealed: true }),
+    summary({ date: "2026-09-10", scheduled: 6, done: 6, sealed: true }),
+    summary({ date: today, scheduled: 6, open: 6 }),
+  ];
+  expect(logSummary(unbroken, today).streak).toBe(2);
 });

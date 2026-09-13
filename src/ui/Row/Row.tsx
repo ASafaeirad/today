@@ -6,10 +6,12 @@ import { Badge, type BadgeProps } from "../Badge/Badge.tsx";
 
 const rowGridVariants = cva("grid items-center px-2.5", {
   variants: {
-    /* The full record, or the bare listing a queue of names is. */
+    /* The full record, the bare listing a queue of names is, or one day of
+       the log written as a single line. */
     layout: {
       record: "grid-record sm:grid-record-full",
       queue: "grid-record",
+      log: "grid-log sm:grid-log-full",
     },
   },
   defaultVariants: {

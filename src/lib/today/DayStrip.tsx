@@ -52,9 +52,10 @@ export function DayStrip({
   canStepBack,
   canStepForward,
 }: DayStripProps) {
-  // The window is read oldest first everywhere else; only the strip turns it
-  // around, because only the strip is a picture of it.
-  const cells = days === undefined ? undefined : [...days].reverse();
+  // The log lists the whole window; the strip draws the near end of it, and
+  // turns it around — the window is read oldest first everywhere else, but
+  // only the strip is a picture of it.
+  const cells = days === undefined ? undefined : days.slice(-STRIP_DAYS).reverse();
 
   return (
     <div className="flex items-stretch overflow-hidden border-b border-border">

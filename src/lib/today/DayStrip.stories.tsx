@@ -38,8 +38,18 @@ const meta = preview.meta({
   },
 });
 
+/** Only the day cells carry a date; the two step buttons are named for what
+    they do, so this picks out the strip itself. */
+const CELL = /^\d{4}-\d{2}-\d{2} · /u;
+
 export const Default = meta.story({
   play: async ({ args, canvas }) => {
+    // Today leads and history recedes to the right.
+    const cells = canvas.getAllByRole("button", { name: CELL });
+    await expect(cells).toHaveLength(STRIP_DAYS);
+    await expect(cells[0]).toHaveAccessibleName("2026-09-11 · fri · never sealed · 3 open");
+    await expect(cells.at(-1)).toHaveAccessibleName("2026-08-29 · sat · sealed 6/6 done");
+
     const today = canvas.getByRole("button", { name: /2026-09-11/u });
     await expect(today).toHaveAttribute("aria-current", "true");
 

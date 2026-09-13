@@ -151,16 +151,24 @@
 }
 
 /* ── Layout ─────────────────────────────────────────────────────
- * The record grid: line number, name, state, operations. Narrow screens drop
- * to number + name and let state and operations wrap underneath.
+ * The record grid: line number, name, state, operations. A phone keeps the
+ * state on the line and drops the operations underneath, on rows deep enough
+ * to be hit with a thumb: the line is the tap target that opens them.
  */
 
 @utility grid-record {
-  grid-template-columns: 2.75ch 1fr;
+  grid-template-columns: 2.75ch minmax(0, 1fr);
+}
+
+@utility grid-record-phone {
+  grid-template-columns: 2.75ch minmax(0, 1fr) auto;
+  grid-auto-rows: minmax(--spacing(12.5), auto);
 }
 
 @utility grid-record-full {
   grid-template-columns: 3.5ch minmax(6ch, 1fr) 8.5ch auto;
+  /* One line, at the height the text sets: the operations are on it, not under it. */
+  grid-auto-rows: auto;
 }
 
 @utility grid-terminal {

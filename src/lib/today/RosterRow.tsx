@@ -1,5 +1,8 @@
+import { useId } from "react";
+
 import type { MarkOutcome } from "#domain/outcome";
 
+import { cn } from "#lib/cn";
 import { Kbd, Row, RowActions, RowIndex, RowName, RowStatus, Text, Toggle, ToggleGroup } from "#ui";
 
 import { OPS, pad, type RowStatus as Status } from "./console";
@@ -11,12 +14,32 @@ interface Props {
   current: boolean;
   /** A sealed day is read-only: the keys still print, they just no longer work. */
   sealed: boolean;
+  /**
+   * Whether the three keys are open under this line. A pointer has room to
+   * carry them on every row at once; a thumb gets them one row at a time, and
+   * the line itself is what opens them.
+   */
+  open: boolean;
   onFocus: () => void;
+  onOpen: () => void;
   onMark: (outcome: MarkOutcome) => void;
   ref?: React.Ref<HTMLDivElement>;
 }
 
-export function RosterRow({ index, name, status, current, sealed, onFocus, onMark, ref }: Props) {
+export function RosterRow({
+  index,
+  name,
+  status,
+  current,
+  sealed,
+  open,
+  onFocus,
+  onOpen,
+  onMark,
+  ref,
+}: Props) {
+  const opsId = useId();
+
   return (
     <Row ref={ref} status={status} current={current && !sealed} onFocusCapture={onFocus}>
       <RowIndex>{pad(index + 1)}</RowIndex>
@@ -25,35 +48,51 @@ export function RosterRow({ index, name, status, current, sealed, onFocus, onMar
       <RowStatus key={status} typed>
         {status}
       </RowStatus>
-      <RowActions>
-        {sealed ? (
+      {sealed ? (
+        <RowActions className="hidden sm:block">
           <Text tone="subtle" size="xs" className="block text-right">
             locked
           </Text>
-        ) : (
-          <ToggleGroup
-            className="justify-stretch sm:justify-end"
-            aria-label={`${name} outcome`}
-            value={status === "open" ? [] : [status]}
-            onValueChange={(next) => onMark((next[0] as MarkOutcome | undefined) ?? null)}
+        </RowActions>
+      ) : (
+        <>
+          {/* The whole line, as one target, over the width a phone reads it at.
+              It is the only control here the pointer never sees: the keys it
+              opens are already on the line above the fold on a wider screen. */}
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={opsId}
+            onClick={onOpen}
+            className="absolute inset-x-0 top-0 h-12.5 sm:hidden"
           >
-            {OPS.map((op) => (
-              <Toggle
-                key={op.value}
-                value={op.value}
-                tone={op.value}
-                aria-label={op.value}
-                className="min-h-11 flex-1 sm:min-h-7 sm:flex-none"
-              >
-                <Kbd variant="hint" className="hidden sm:inline">
-                  {op.key}
-                </Kbd>
-                {op.value}
-              </Toggle>
-            ))}
-          </ToggleGroup>
-        )}
-      </RowActions>
+            <span className="sr-only">mark {name}</span>
+          </button>
+          <RowActions id={opsId} className={cn("sm:block", { hidden: !open })}>
+            <ToggleGroup
+              className="justify-stretch sm:justify-end"
+              aria-label={`${name} outcome`}
+              value={status === "open" ? [] : [status]}
+              onValueChange={(next) => onMark((next[0] as MarkOutcome | undefined) ?? null)}
+            >
+              {OPS.map((op) => (
+                <Toggle
+                  key={op.value}
+                  value={op.value}
+                  tone={op.value}
+                  aria-label={op.value}
+                  className="min-h-13 flex-1 sm:min-h-7 sm:flex-none"
+                >
+                  <Kbd variant="hint" className="hidden sm:inline">
+                    {op.key}
+                  </Kbd>
+                  {op.value}
+                </Toggle>
+              ))}
+            </ToggleGroup>
+          </RowActions>
+        </>
+      )}
     </Row>
   );
 }

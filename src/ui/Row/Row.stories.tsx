@@ -32,11 +32,11 @@ export const Matrix = meta.story({
 
     return (
       <div>
-        <RowHeader>
+        <RowHeader className="hidden sm:grid">
           <span>#</span>
           <span>routine</span>
-          <span className="hidden sm:block">state</span>
-          <span className="hidden justify-self-end sm:block">set</span>
+          <span>state</span>
+          <span className="justify-self-end">set</span>
         </RowHeader>
         {RECORDS.map((record, index) => {
           const status = states[index]!;
@@ -69,7 +69,7 @@ export const Matrix = meta.story({
                       value={op.value}
                       tone={op.value}
                       aria-label={op.value}
-                      className="flex-1 sm:flex-none"
+                      className="min-h-13 flex-1 sm:min-h-7 sm:flex-none"
                     >
                       <Kbd variant="hint">{op.key}</Kbd>
                       {op.value}

@@ -145,18 +145,24 @@ function DayCell({ summary, current, onPhone, onPick }: DayCellProps) {
         !onPhone && "hidden sm:flex",
       )}
     >
-      <span
+      {/* The current cell has already chosen its ink, so its labels inherit
+          rather than each restating a tone the inversion would have to beat. */}
+      <Text
+        size="sm"
+        tone="inherit"
         className={cn(
-          "flex flex-1 items-center justify-center text-sm leading-none",
+          "flex flex-1 items-center justify-center leading-none",
           !current && TALLY_INK[dayTone(summary)],
         )}
       >
         {dayTally(summary)}
-      </span>
-      <span className="pb-0.75 text-center text-xs leading-tight">{summary.date.slice(8)}</span>
-      <span className="pb-1 text-center text-xs leading-none opacity-60">
+      </Text>
+      <Text size="xs" tone="inherit" className="pb-0.75 text-center leading-tight">
+        {summary.date.slice(8)}
+      </Text>
+      <Text size="xs" tone="inherit" className="pb-1 text-center leading-none opacity-60">
         {weekday(summary.date)}
-      </span>
+      </Text>
     </button>
   );
 }

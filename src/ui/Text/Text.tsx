@@ -14,6 +14,9 @@ const textVariants = cva("", {
     },
     tone: {
       default: "text-foreground",
+      /* Takes the ink of whatever encloses it: for a label inside a surface
+         that has already set its own, such as an inverted strip cell. */
+      inherit: "",
       muted: "text-muted-foreground",
       subtle: "text-subtle-foreground",
       accent: "text-accent",

@@ -7,6 +7,7 @@ const meta = preview.meta({ component: Text });
 
 const tones = [
   { label: "Default", tone: "default" },
+  { label: "Inherit", tone: "inherit" },
   { label: "Muted", tone: "muted" },
   { label: "Subtle", tone: "subtle" },
   { label: "Accent", tone: "accent" },

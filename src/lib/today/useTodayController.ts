@@ -26,6 +26,13 @@ export interface TodayController {
   history: History;
   /** Opens a date, if the window covers it. Ignores anything outside it. */
   goToDate: (date: LocalDate) => void;
+  /**
+   * Opens a date whatever the window reaches, for a day named by something
+   * other than the strip. The nudge is the one caller: the backlog is
+   * deliberately unbounded, so the day it points at can be older than the
+   * oldest cell.
+   */
+  openDate: (date: LocalDate) => void;
   stepDay: (delta: number) => void;
   canStepBack: boolean;
   canStepForward: boolean;
@@ -66,6 +73,49 @@ function useFollowCursor(refs: TodayRefs, cursor: number, day: DayView | undefin
   }, [cursor, day, refs.rowRefs]);
 }
 
+/**
+ * The date on screen, and the one thing that moves it without being asked.
+ *
+ * `today` is the server's, handed down through the owner session, so a console
+ * left open across midnight is given a new one while it is still mounted. A
+ * screen that was following today follows it over; a past day the owner
+ * deliberately opened stays where it was put.
+ */
+export function useViewedDate(today: LocalDate): [LocalDate, (date: LocalDate) => void] {
+  const [date, setDate] = useState<LocalDate>(today);
+  const [dayBefore, setDayBefore] = useState<LocalDate>(today);
+
+  if (dayBefore !== today) {
+    setDayBefore(today);
+    if (date === dayBefore) setDate(today);
+  }
+
+  return [date, setDate];
+}
+
+/**
+ * A day that has just sealed says so once, to whoever is listening rather than
+ * looking. The stamp itself stays on screen for good.
+ *
+ * Only a day that sealed under the owner's hands is worth saying: the ref
+ * remembers which date was open when it was opened, so stepping onto a day that
+ * was already sealed reads as history rather than as an event.
+ */
+function useSealAnnouncement(day: DayView | undefined, say: (text: string) => void): void {
+  const announcedFor = useRef<LocalDate | null>(null);
+
+  useEffect(() => {
+    if (day === undefined) return;
+    if (!day.sealed) {
+      announcedFor.current = day.date;
+      return;
+    }
+    if (announcedFor.current !== day.date) return;
+    announcedFor.current = null;
+    say("day sealed");
+  }, [day, say]);
+}
+
 /** The next line still owing a verdict, or the one below if there is none. */
 function advance(roster: readonly RosterEntry[], from: number): number {
   const next = roster.findIndex((entry, index) => index > from && rowStatus(entry) === "open");
@@ -79,11 +129,10 @@ function advance(roster: readonly RosterEntry[], from: number): number {
  */
 export function useTodayController(today: LocalDate, refs: TodayRefs): TodayController {
   const [mode, setMode] = useState<Mode>("track");
-  const [date, setDate] = useState<LocalDate>(today);
+  const [date, setDate] = useViewedDate(today);
   const [cursorState, setCursorState] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
-  const announcedFor = useRef<LocalDate | null>(null);
 
   const history = useHistory(today);
   const day = useQuery(api.days.get, { date });
@@ -116,15 +165,23 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
     if (next === "plan") setDate(today);
   };
 
-  // Nothing clamps here. A date the window does not reach is one the console
-  // cannot draw or summarize, and silently landing on a neighbouring day would
-  // be worse than not moving at all.
-  const goToDate = (next: LocalDate) => {
-    if (!history.covers(next)) return;
+  // The window bounds what can be *summarized*, not what can be opened: the day
+  // screen reads one date at a time and will render any of them. So the strip
+  // and the step keys go through the guard below, and a day named outright goes
+  // through this.
+  const openDate = (next: LocalDate) => {
     setMode("track");
     setDate(next);
     setCursorState(null);
     setNotice(null);
+  };
+
+  // Nothing clamps here. A date the window does not reach is one the strip
+  // cannot draw and the step keys cannot count off, and silently landing on a
+  // neighbouring day would be worse than not moving at all.
+  const goToDate = (next: LocalDate) => {
+    if (!history.covers(next)) return;
+    openDate(next);
   };
   const stepDay = (delta: number) => goToDate(addDays(date, delta));
 
@@ -148,22 +205,7 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
       });
   };
 
-  // A day that has just sealed says so once, to whoever is listening rather
-  // than looking. The stamp itself stays on screen for good.
-  //
-  // Only a day that sealed under the owner's hands is worth saying: the ref
-  // remembers which date was open when it was opened, so stepping onto a day
-  // that was already sealed reads as history rather than as an event.
-  useEffect(() => {
-    if (day === undefined) return;
-    if (!day.sealed) {
-      announcedFor.current = day.date;
-      return;
-    }
-    if (announcedFor.current !== day.date) return;
-    announcedFor.current = null;
-    setAnnouncement("day sealed");
-  }, [day]);
+  useSealAnnouncement(day, setAnnouncement);
 
   const stepRow = (delta: number) => {
     if (!marking || roster.length === 0) return;
@@ -206,9 +248,13 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
     lookingBack: date !== today,
     history,
     goToDate,
+    openDate,
     stepDay,
-    canStepBack: date > history.earliest,
-    canStepForward: date < today,
+    // Asked of the window rather than of the ends of it, so that a day opened
+    // from outside it — the old backlog day — disables both arrows instead of
+    // offering a step that would be refused. The banner and T still lead home.
+    canStepBack: history.covers(addDays(date, -1)),
+    canStepForward: history.covers(addDays(date, 1)),
     day,
     roster,
     sealed,

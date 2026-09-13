@@ -217,10 +217,11 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
     setCursorState(advance(roster, cursor));
   };
 
-  // The console's one keyboard. `enabled` gates every row on the ceremony,
-  // which has its own bindings while it is open; callbacks and the `enabled`
-  // flag both resync every render, so this is safe to close over this render's
-  // state directly.
+  // The console's shared keyboard. LogScreen owns J, K, and Enter while it is
+  // mounted because its cursor moves across the history window, not this day's
+  // roster. `enabled` gates every row on the ceremony, which has its own
+  // bindings while it is open; callbacks and the `enabled` flag both resync
+  // every render, so this is safe to close over this render's state directly.
   useHotkeys(
     [
       { hotkey: "P", callback: () => enterMode("plan") },

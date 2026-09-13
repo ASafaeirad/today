@@ -170,14 +170,18 @@
 /*
  * The log grid: date, weekday, record bar, tally, state. Narrow screens drop
  * the weekday and the tally, because the bar is what the line is for.
+ *
+ * The state column is cut to fit `awaiting review`, which is the longest of
+ * them and the one the ledger names — a column that made it wrap or clip would
+ * be a column arguing for a shorter word.
  */
 
 @utility grid-log {
-  grid-template-columns: 11ch minmax(0, 1fr) 8ch;
+  grid-template-columns: 11ch minmax(0, 1fr) 17ch;
 }
 
 @utility grid-log-full {
-  grid-template-columns: 11ch 4ch minmax(0, 1fr) 7ch 8ch;
+  grid-template-columns: 11ch 4ch minmax(0, 1fr) 7ch 17ch;
 }
 
 /* Controls that sit shoulder to shoulder share one line between them. */

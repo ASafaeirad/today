@@ -144,7 +144,11 @@ function ConsoleHead({ c, facts, today, onSeal }: HeadProps) {
             // The day the nudge names is opened as well as sealed: escaping the
             // ceremony should leave the owner on the day it was about, rather
             // than back on today wondering where it went.
-            c.goToDate(backlog.date);
+            //
+            // Opened past the window, too. The backlog reaches back forever, so
+            // the day it points at may be older than the oldest cell, and the
+            // strip's reach is no reason to seal a day without showing it.
+            c.openDate(backlog.date);
             c.seal.begin(backlog.date);
           }}
         />

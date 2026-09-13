@@ -2,10 +2,11 @@ import { useRef } from "react";
 
 import type { LocalDate } from "#domain/date";
 
-import { lookbackNote, rowStatus, sealCta, sealStamp } from "./console";
+import { LOG_DAYS, logSummary, lookbackNote, rowStatus, sealCta, sealStamp } from "./console";
 import {
   BacklogBar,
   ConsoleFooter,
+  LogLine,
   LookbackBar,
   Notice,
   PlanBanner,
@@ -16,6 +17,7 @@ import {
 } from "./ConsoleChrome";
 import { DayScreen } from "./DayScreen";
 import { DayStrip } from "./DayStrip";
+import { LogScreen } from "./LogScreen";
 import { PlanScreen } from "./PlanScreen";
 import { SealDialog } from "./SealDialog";
 import { useTodayController, type TodayController } from "./useTodayController";
@@ -28,6 +30,9 @@ interface DayFacts {
   /** False on a day with nothing to seal, and on one already sealed. */
   canSeal: boolean;
   planning: boolean;
+  /** Track mode: the one mode the day underneath is the subject of. */
+  tracking: boolean;
+  reading: boolean;
 }
 
 function factsOf(c: TodayController): DayFacts {
@@ -42,17 +47,20 @@ function factsOf(c: TodayController): DayFacts {
     // already locked.
     canSeal: c.day !== undefined && !c.sealed && scheduled > 0,
     planning: c.mode === "plan",
+    tracking: c.mode === "track",
+    reading: c.mode === "log",
   };
 }
 
 /**
- * Two modes over one day. Track is the hot path — mark and seal, never edit the
- * list. Plan is where routines are created and retired, and it can do neither
- * of the other two.
+ * Three modes, and one day underneath them. Track is the hot path — mark and
+ * seal, never edit the list. Plan is where routines are created and retired,
+ * and it can do neither of the other two. Log is the record of every day in
+ * the window and writes nothing at all.
  *
- * Which day that is need not be today. Looking back opens the same track
- * screen: an unsealed past day is still markable and still sealable, and a
- * sealed one is that same screen behind glass.
+ * Which day track is on need not be today. Looking back opens the same screen:
+ * an unsealed past day is still markable and still sealable, and a sealed one
+ * is that same screen behind glass.
  */
 export function TodayConsole({ today }: { today: LocalDate }) {
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -69,6 +77,13 @@ export function TodayConsole({ today }: { today: LocalDate }) {
       <div className="flex min-h-0 flex-col p-2.5">
         {facts.planning ? (
           <PlanScreen plan={c.plan} onDone={() => c.enterMode("track")} />
+        ) : facts.reading ? (
+          <LogScreen
+            days={c.history.days}
+            today={today}
+            date={c.date}
+            onOpen={(next) => c.goToDate(next)}
+          />
         ) : (
           <DayScreen
             day={c.day}
@@ -82,7 +97,7 @@ export function TodayConsole({ today }: { today: LocalDate }) {
         )}
       </div>
       <div>
-        {c.sealed && !facts.planning ? (
+        {c.sealed && facts.tracking ? (
           <SealStamp text={sealStamp(c.date, facts.done, facts.scheduled)} />
         ) : null}
         <ConsoleFooter
@@ -116,7 +131,7 @@ interface HeadProps {
 function ConsoleHead({ c, facts, today, onSeal }: HeadProps) {
   const { backlog } = c;
   // Nothing to nag about on the very day being resolved.
-  const nagging = !facts.planning && backlog !== undefined && backlog.date !== c.date;
+  const nagging = facts.tracking && backlog !== undefined && backlog.date !== c.date;
 
   return (
     <div>
@@ -130,7 +145,7 @@ function ConsoleHead({ c, facts, today, onSeal }: HeadProps) {
         canStepForward={c.canStepForward}
       />
       {facts.planning ? <PlanBanner /> : null}
-      {!facts.planning && c.lookingBack ? (
+      {facts.tracking && c.lookingBack ? (
         <LookbackBar
           date={c.date}
           note={lookbackNote(c.sealed, facts.open)}
@@ -157,6 +172,8 @@ function ConsoleHead({ c, facts, today, onSeal }: HeadProps) {
       <div className="px-2.5 pt-2.5">
         {facts.planning ? (
           <PlanLine count={c.plan.routines?.length ?? 0} />
+        ) : facts.reading ? (
+          <LogLine summary={logSummary(c.history.days ?? [], today)} days={LOG_DAYS} />
         ) : (
           <TrackLine
             resolved={facts.scheduled - facts.open}

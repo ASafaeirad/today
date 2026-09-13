@@ -167,6 +167,19 @@
   grid-template-rows: auto 1fr auto;
 }
 
+/*
+ * The log grid: date, weekday, record bar, tally, state. Narrow screens drop
+ * the weekday and the tally, because the bar is what the line is for.
+ */
+
+@utility grid-log {
+  grid-template-columns: 11ch minmax(0, 1fr) 8ch;
+}
+
+@utility grid-log-full {
+  grid-template-columns: 11ch 4ch minmax(0, 1fr) 7ch 8ch;
+}
+
 /* Controls that sit shoulder to shoulder share one line between them. */
 @utility joined {
   & > * {

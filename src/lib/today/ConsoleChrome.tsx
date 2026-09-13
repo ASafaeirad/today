@@ -21,6 +21,7 @@ import {
   shortDayLabel,
   type BalanceView,
   type DaySummary,
+  type LogSummary,
   type Mode,
 } from "./console";
 
@@ -35,6 +36,7 @@ const DAY_STATE = {
   sealed: "sealed",
   plan: "planning",
   track: "open",
+  log: "log",
 } as const;
 
 export function TopBar({ date, mode, sealed, onMode }: TopBarProps) {
@@ -56,7 +58,7 @@ export function TopBar({ date, mode, sealed, onMode }: TopBarProps) {
         value={[mode]}
         onValueChange={(next) => onMode((next[0] as Mode | undefined) ?? mode)}
       >
-        {(["track", "plan"] as const).map((value) => (
+        {(["track", "plan", "log"] as const).map((value) => (
           <Toggle
             key={value}
             value={value}
@@ -68,7 +70,8 @@ export function TopBar({ date, mode, sealed, onMode }: TopBarProps) {
         ))}
       </ToggleGroup>
       <BarItem tone="muted" divided={false}>
-        {sealed ? DAY_STATE.sealed : DAY_STATE[mode]}
+        {/* The log is about every day, so no one day's seal speaks for it. */}
+        {sealed && mode !== "log" ? DAY_STATE.sealed : DAY_STATE[mode]}
       </BarItem>
     </Bar>
   );
@@ -230,6 +233,22 @@ export function PlanLine({ count }: { count: number }) {
   );
 }
 
+/**
+ * The same line in log mode: what the window came to, and how much of it the
+ * owner has actually closed.
+ */
+export function LogLine({ summary, days }: { summary: LogSummary; days: number }) {
+  return (
+    <CommandLine action={`log --days ${days}`} disabled>
+      <CommandLineValue>
+        {summary.sealed}/{summary.scheduled}
+      </CommandLineValue>{" "}
+      sealed · <CommandLineValue>{summary.awaiting}</CommandLineValue> still open ·{" "}
+      <CommandLineValue>streak {summary.streak}d</CommandLineValue>
+    </CommandLine>
+  );
+}
+
 /** The stamp a sealed day wears. Nothing below it is editable again. */
 export function SealStamp({ text }: { text: string }) {
   return (
@@ -272,9 +291,13 @@ export function ConsoleFooter({ mode, sealed, marking, canSeal, sealLabel, onSea
           back to track mode
         </BarItem>
       ) : null}
-      {/* Stepping days works on a sealed day too, so this legend never hides. */}
+      {/* Stepping days and reading the log work on a sealed day too, so these
+          two never hide the way the marking keys do. */}
       <BarItem tone="muted" label={<Keys keys={["H", "L"]} />} className="hidden sm:flex">
         day
+      </BarItem>
+      <BarItem tone="muted" label={<Keys keys={["G"]} />} className="hidden sm:flex">
+        log
       </BarItem>
       {marking ? (
         <>

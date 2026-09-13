@@ -186,9 +186,8 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
   const stepDay = (delta: number) => goToDate(addDays(date, delta));
 
   // Plan mode holds a focused field, and a confirmation over it once a routine
-  // is being removed. A day key there would move the ground under both, so the
-  // keyboard leaves plan mode alone — the strip still navigates by click, and
-  // ESC is one keystroke away from a mode these keys do belong to.
+  // is being removed; a key that changes the day or the mode would move the
+  // ground under both. The strip and the log still navigate by click.
   const dayKey = (move: () => void) => () => {
     if (mode !== "plan") move();
   };
@@ -237,6 +236,7 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
       { hotkey: "L", callback: dayKey(() => stepDay(-1)) },
       { hotkey: "H", callback: dayKey(() => stepDay(1)) },
       { hotkey: "T", callback: dayKey(() => goToDate(today)) },
+      { hotkey: "G", callback: dayKey(() => enterMode(mode === "log" ? "track" : "log")) },
     ],
     { enabled: seal.date === null },
   );

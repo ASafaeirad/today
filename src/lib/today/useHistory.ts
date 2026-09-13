@@ -5,7 +5,7 @@ import type { LocalDate } from "#domain/date";
 
 import { api } from "#convex/_generated/api";
 
-import { lookbackDates, STRIP_DAYS, type DaySummary } from "./console";
+import { lookbackDates, LOG_DAYS, type DaySummary } from "./console";
 
 export interface History {
   /** One summary per date in the window, oldest first. Undefined until read. */
@@ -22,10 +22,10 @@ export interface History {
  *
  * The window is what bounds looking back. `days.overview` refuses more than
  * `MAX_EAGER_DAYS` dates at a time, so the span the console offers has to be
- * one it can actually summarize — the strip and the step keys share this
- * window rather than each inventing their own reach.
+ * one it can actually summarize — the log, the strip and the step keys share
+ * this one read rather than each inventing their own reach.
  */
-export function useHistory(today: LocalDate, span: number = STRIP_DAYS): History {
+export function useHistory(today: LocalDate, span: number = LOG_DAYS): History {
   const dates = useMemo(() => lookbackDates(today, span), [today, span]);
   const days = useQuery(api.days.overview, { dates });
   const earliest = dates[0] ?? today;

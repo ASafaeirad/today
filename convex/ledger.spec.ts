@@ -125,7 +125,9 @@ describe("the sweep's bounds", () => {
       pinsThroughDate: "2027-01-01",
     });
     await as.mutation(api.schedules.set, { routineId, dowMask: SUNDAYS });
-  });
+    // A year of backlog is a dozen committed chunks, which is real work rather
+    // than a slow assertion. Budgeted like the other tests that pin a year.
+  }, 30_000);
 
   it("stops on the Instance bound as well as the date one", async () => {
     const { as } = await ledger("2026-03-01");
@@ -161,7 +163,7 @@ describe("the sweep's bounds", () => {
     for (const date of datesBetween("2026-03-01", first.pinsThroughDate)) {
       expect(instances.filter((row) => row.date === date)).toHaveLength(3);
     }
-  });
+  }, 30_000);
 });
 
 describe("the day-of-week mask", () => {

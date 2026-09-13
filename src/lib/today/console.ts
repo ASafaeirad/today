@@ -115,14 +115,15 @@ export function sealCta(date: LocalDate, today: LocalDate): string {
 }
 
 /**
- * Where a day stands in the log. Sealed is the only final answer: today is
- * open because it is not late yet, and a past day that was never closed is
- * unsealed for as long as the owner leaves it that way.
+ * Where a day stands in the log, in the ledger's own words. Sealed is the only
+ * final answer: today is open because it is not late yet, and a past day that
+ * was never closed is awaiting review — the name `CONTEXT.md` fixes for that
+ * state — for as long as the owner leaves it that way.
  */
 export function logState(summary: DaySummary, today: LocalDate): string {
   if (summary.scheduled === 0) return "—";
   if (summary.sealed) return "sealed";
-  return summary.date >= today ? "open" : "unsealed";
+  return summary.date >= today ? "open" : "awaiting review";
 }
 
 export interface RecordSegment {
@@ -138,6 +139,20 @@ export function recordSegments(summary: DaySummary): RecordSegment[] {
   return (["done", "missed", "skipped", "open"] as const)
     .map((outcome) => ({ outcome, count: summary[outcome] }))
     .filter((segment) => segment.count > 0);
+}
+
+/**
+ * What one log line says when it is heard rather than seen.
+ *
+ * The bar is the line's whole point and it carries no text of its own, so the
+ * counts it draws are spelled out here. A day the schedule put nothing on has
+ * no state to report and says so instead.
+ */
+export function logLineLabel(summary: DaySummary, today: LocalDate): string {
+  const head = `${dayLabel(summary.date)} · `;
+  if (summary.scheduled === 0) return `${head}nothing scheduled`;
+  const counts = recordSegments(summary).map((segment) => `${segment.count} ${segment.outcome}`);
+  return `${head}${logState(summary, today)} · ${counts.join(", ")}`;
 }
 
 export interface LogSummary {

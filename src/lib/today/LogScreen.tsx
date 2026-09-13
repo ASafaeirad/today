@@ -5,6 +5,7 @@ import { Panel, PanelBody, RowHeader, rowGridVariants, Text } from "#ui";
 
 import {
   dayTally,
+  logLineLabel,
   logState,
   recordSegments,
   weekday,
@@ -95,7 +96,9 @@ function LogRow({ summary, today, current, onOpen }: LogRowProps) {
     <button
       type="button"
       aria-current={current || undefined}
-      aria-label={`${summary.date} · ${weekday(summary.date)} · ${state}`}
+      // The label replaces everything under it, and the bar is the one thing
+      // here with no words of its own, so the counts it draws go in by hand.
+      aria-label={logLineLabel(summary, today)}
       onClick={() => onOpen(summary.date)}
       className={cn(
         rowGridVariants({ layout: "log" }),

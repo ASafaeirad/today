@@ -70,18 +70,27 @@ export const Default = meta.story({
   play: async ({ args, canvas }) => {
     // Newest first: the log is read from where the owner is standing.
     const rows = canvas.getAllByRole("button");
-    await expect(rows[0]).toHaveAccessibleName("2026-09-11 · fri · open");
+    // The bar is the line and the bar has no words, so the counts it draws are
+    // in the name a screen reader hears.
+    await expect(rows[0]).toHaveAccessibleName(
+      "2026-09-11 · fri · open · 2 done, 1 skipped, 3 open",
+    );
     await expect(rows).toHaveLength(LOG_DAYS);
 
-    // A past day nobody closed says so, and a lapse claims nothing at all.
-    // Presence rather than visibility: every row cuts in, and an assertion
-    // landing mid-animation would read the opacity it starts at.
+    // A past day nobody closed is awaiting review, the name the ledger fixes,
+    // and a lapse claims no state at all. Presence rather than visibility:
+    // every row cuts in, and an assertion landing mid-animation would read the
+    // opacity it starts at.
     await expect(
-      canvas.getByRole("button", { name: "2026-09-09 · wed · unsealed" }),
+      canvas.getByRole("button", { name: "2026-09-09 · wed · awaiting review · 3 done, 3 open" }),
     ).toBeInTheDocument();
-    await expect(canvas.getByRole("button", { name: "2026-09-06 · sun · —" })).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("button", { name: "2026-09-06 · sun · nothing scheduled" }),
+    ).toBeInTheDocument();
 
-    await userEvent.click(canvas.getByRole("button", { name: "2026-09-08 · tue · sealed" }));
+    await userEvent.click(
+      canvas.getByRole("button", { name: "2026-09-08 · tue · sealed · 4 done, 2 missed" }),
+    );
     await expect(args.onOpen).toHaveBeenCalledWith("2026-09-08");
   },
 });

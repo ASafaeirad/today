@@ -236,15 +236,31 @@ export function PlanLine({ count }: { count: number }) {
 /**
  * The same line in log mode: what the window came to, and how much of it the
  * owner has actually closed.
+ *
+ * Undefined until the overview resolves, and it says so rather than counting an
+ * empty window. `0/0 sealed · streak 0d` is a verdict, and a client that never
+ * reaches the server would sit under that one indefinitely.
  */
-export function LogLine({ summary, days }: { summary: LogSummary; days: number }) {
+export function LogLine({ summary, days }: { summary: LogSummary | undefined; days: number }) {
   return (
-    <CommandLine action={`log --days ${days}`} disabled>
-      <CommandLineValue>
-        {summary.sealed}/{summary.scheduled}
-      </CommandLineValue>{" "}
-      sealed · <CommandLineValue>{summary.awaiting}</CommandLineValue> still open ·{" "}
-      <CommandLineValue>streak {summary.streak}d</CommandLineValue>
+    <CommandLine
+      action={`log --days ${days}`}
+      disabled
+      aria-busy={summary === undefined || undefined}
+    >
+      {summary === undefined ? (
+        <span className="inline-block w-fit animate-type overflow-hidden whitespace-nowrap align-bottom">
+          reading ...
+        </span>
+      ) : (
+        <>
+          <CommandLineValue>
+            {summary.sealed}/{summary.scheduled}
+          </CommandLineValue>{" "}
+          sealed · <CommandLineValue>{summary.awaiting}</CommandLineValue> still open ·{" "}
+          <CommandLineValue>streak {summary.streak}d</CommandLineValue>
+        </>
+      )}
     </CommandLine>
   );
 }

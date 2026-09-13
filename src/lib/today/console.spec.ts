@@ -8,6 +8,7 @@ import {
   dayTitle,
   dayTone,
   errorText,
+  logLineLabel,
   logState,
   logSummary,
   lookbackDates,
@@ -131,11 +132,27 @@ it("the log says where a day stands, and sealed is the only final answer", () =>
   const today = "2026-09-11";
   expect(logState(summary({ date: today, scheduled: 6, open: 6 }), today)).toBe("open");
   // Today is not late until it is over; a past day that was never closed is.
-  expect(logState(summary({ date: "2026-09-10", scheduled: 6, open: 6 }), today)).toBe("unsealed");
+  expect(logState(summary({ date: "2026-09-10", scheduled: 6, open: 6 }), today)).toBe(
+    "awaiting review",
+  );
   expect(logState(summary({ date: today, scheduled: 6, done: 6, sealed: true }), today)).toBe(
     "sealed",
   );
   expect(logState(summary({ date: "2026-09-10" }), today)).toBe("—");
+});
+
+it("a log line says its counts out loud, since the bar it draws them as cannot", () => {
+  const today = "2026-09-11";
+  expect(
+    logLineLabel(
+      summary({ date: "2026-09-10", scheduled: 6, done: 3, skipped: 1, open: 2 }),
+      today,
+    ),
+  ).toBe("2026-09-10 · thu · awaiting review · 3 done, 1 skipped, 2 open");
+  // A lapse has no state to report, so it reports the lapse instead of a dash.
+  expect(logLineLabel(summary({ date: "2026-09-10" }), today)).toBe(
+    "2026-09-10 · thu · nothing scheduled",
+  );
 });
 
 it("the record bar carries only the outcomes the day actually landed on", () => {

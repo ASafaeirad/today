@@ -173,7 +173,7 @@ function ConsoleHead({ c, facts, today, onSeal }: HeadProps) {
         {facts.planning ? (
           <PlanLine count={c.plan.routines?.length ?? 0} />
         ) : facts.reading ? (
-          <LogLine summary={logSummary(c.history.days ?? [], today)} days={LOG_DAYS} />
+          <LogLine summary={c.history.days && logSummary(c.history.days, today)} days={LOG_DAYS} />
         ) : (
           <TrackLine
             resolved={facts.scheduled - facts.open}

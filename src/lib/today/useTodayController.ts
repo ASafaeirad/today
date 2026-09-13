@@ -190,8 +190,10 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
       { hotkey: "M", callback: () => markCurrent("missed") },
       { hotkey: "S", callback: () => markCurrent("skipped") },
       { hotkey: "Z", callback: () => marking && roster.length > 0 && seal.begin(date) },
-      { hotkey: "[", callback: dayKey(() => stepDay(-1)) },
-      { hotkey: "]", callback: dayKey(() => stepDay(1)) },
+      // H and L move along the strip, not along the calendar: today is leftmost
+      // and history runs right, so L steps back and H comes forward.
+      { hotkey: "L", callback: dayKey(() => stepDay(-1)) },
+      { hotkey: "H", callback: dayKey(() => stepDay(1)) },
       { hotkey: "T", callback: dayKey(() => goToDate(today)) },
     ],
     { enabled: seal.date === null },

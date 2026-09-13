@@ -52,7 +52,7 @@ export function shortDayLabel(date: LocalDate): string {
  *
  * Looking back is bounded rather than endless because every date in the window
  * is read eagerly to draw the strip: this is the number of cells under the
- * chrome, and it is what `[` and `]` may step over.
+ * chrome, and it is what H and L may step over.
  */
 export const STRIP_DAYS = 14;
 

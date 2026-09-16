@@ -260,3 +260,51 @@ it("keeps asking to be driven while the walk still owes a continuation", async (
   while (!result.complete) result = await l.as.mutation(api.experience.sync, {});
   expect((await progression(l)).caughtUp).toBe(true);
 });
+
+it("settles a first day whose roster arrived after the walk had passed it", async () => {
+  // The console drives the catch-up on mount, which for a new owner is before
+  // a single routine exists — so the watermark steps over an empty today, and
+  // the routine named a moment later pins an Instance onto that same day.
+  atDate("2026-09-11");
+  const as = await signIn(initConvexTest());
+  await as.mutation(api.owners.ensure, { timezone: "UTC" });
+  await as.mutation(api.experience.sync, {});
+
+  const { routineId } = await as.mutation(api.routines.create, {
+    name: "Read",
+    dowMask: EVERY_DAY,
+  });
+  await as.mutation(api.marks.append, { date: "2026-09-11", routineId, outcome: "done" });
+  const day = await as.query(api.days.get, { date: "2026-09-11" });
+  const { receipt } = await as.mutation(api.days.close, {
+    date: "2026-09-11",
+    seal: true,
+    expectedRev: day.rev,
+  });
+
+  // Nothing is awaiting review, so nothing may be held.
+  expect(receipt.held).toBe(false);
+  expect(receipt.streak).toBe(1);
+  expect(receipt.total).toBe(1 + closingExperience(1));
+  await expect(as.query(api.experience.progression, {})).resolves.toMatchObject({
+    streak: 1,
+    heldDays: 0,
+  });
+});
+
+describe("a day with misses", () => {
+  it("reports a reset only when there was a run to break", async () => {
+    const broken = await ledger();
+    await cleanDay(broken, "2026-09-05");
+    await markAll(broken, "2026-09-06", ["done", "missed"]);
+    expect((await close(broken, "2026-09-06")).receipt.reset).toBe(true);
+
+    // The very first closed day cannot have broken anything.
+    const first = await ledger();
+    await markAll(first, "2026-09-05", ["done", "missed"]);
+    const { receipt } = await close(first, "2026-09-05");
+    expect(receipt.streak).toBe(0);
+    expect(receipt.reset).toBe(false);
+    expect(receipt.total).toBe(1 + CLOSING_EXPERIENCE);
+  });
+});

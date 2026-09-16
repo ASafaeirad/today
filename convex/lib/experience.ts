@@ -152,13 +152,50 @@ export async function bankDay(
     settled: false,
     streak: null,
     multiplier: null,
+    reset: false,
     total: held.total,
     bankedAt: Date.now(),
   });
 
   const progression = await ensureProgression(ctx, ownerId);
   await ctx.db.patch(progression._id, { experience: progression.experience + held.total });
+  await rewindFor(ctx, progression, date);
   return (await ctx.db.get(id))!;
+}
+
+/**
+ * Takes the watermark back behind an award that landed behind it.
+ *
+ * A date with no roster is not a date the run can stop at, so the walk steps
+ * over it — and a date can gain a roster after the walk has passed. The owner
+ * who has just signed up is the ordinary case: the console drives the catch-up
+ * before a single routine exists, the watermark passes over an empty today, and
+ * the routine created a moment later pins an Instance onto that same day. Left
+ * alone, that first day's award would sit behind the watermark and never settle.
+ *
+ * Rewinding is safe in the one direction that matters. Re-walking a settled
+ * award reads its streak and moves on, so the pass that follows converges on
+ * the same answer it would have reached had the day never been empty.
+ */
+async function rewindFor(
+  ctx: MutationCtx,
+  progression: ProgressionRow,
+  date: LocalDate,
+): Promise<void> {
+  if (progression.settledThrough === null || date > progression.settledThrough) return;
+
+  // Every award at or before the watermark is settled, and this one is behind
+  // it, so the nearest award before this date carries the run as it stood.
+  const prior = await ctx.db
+    .query("dayAwards")
+    .withIndex("by_owner_date", (q) => q.eq("ownerId", progression.ownerId).lt("date", date))
+    .order("desc")
+    .first();
+
+  await ctx.db.patch(progression._id, {
+    settledThrough: addDays(date, -1),
+    streak: prior?.streak ?? 0,
+  });
 }
 
 export interface SettleResult {
@@ -235,6 +272,7 @@ export async function settle(
         settled: true,
         streak: final.streak,
         multiplier: final.multiplier,
+        reset: final.reset,
         total: final.total,
       });
       ({ streak } = final);
@@ -457,7 +495,10 @@ function receiptLines(award: Doc<"dayAwards"> | null) {
     held: !award.settled,
     streak: award.streak,
     multiplier: award.multiplier,
-    reset: award.settled && award.streak === 0 && award.missed > 0,
+    // Read back rather than re-derived. A day that misses while the run is
+    // already at zero broke nothing, and telling its owner their streak was
+    // reset would be a reproach for a run they never had.
+    reset: award.reset,
   };
 }
 

@@ -148,6 +148,33 @@ A skip reserved by marking an instance skipped on a day that is still open, show
 but not yet spent. Un-marking releases it at no cost.
 _Avoid_: Reserve, pending spend, lock
 
+## Progression
+
+**Experience**:
+The owner's lifetime progress banked when a non-empty day closes. It reflects that day's done
+instances and closing reward, stays separate from the balance, and does not reset.
+_Avoid_: Points, score, credits
+
+**Level**:
+A numbered milestone derived from the owner's total experience. Levels begin at one and have no
+maximum.
+_Avoid_: Rank, tier, grade
+
+**No-Miss Seal Streak**:
+Consecutive non-empty closed days containing only done or skipped outcomes. An awaiting-review day
+pauses the streak, a missed outcome resets it, and an empty day neither advances nor breaks it.
+_Avoid_: Seal streak, clean streak, completion streak
+
+**Streak Multiplier**:
+The factor derived from the no-miss seal streak and applied only to the experience banked for
+closing a day.
+_Avoid_: Boost, bonus rate, combo
+
+**Pending Experience**:
+Experience shown for done marks on an open day but not banked until that day closes. Changing a
+done mark removes its pending experience.
+_Avoid_: Provisional points, held XP, unclaimed XP
+
 ## Ownership
 
 **Owner**:

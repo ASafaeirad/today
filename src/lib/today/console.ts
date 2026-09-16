@@ -7,6 +7,8 @@ import type { Outcome } from "#domain/outcome";
 import { MAX_EAGER_DAYS } from "#domain/constants";
 import { addDays, datesBetween, dayOfWeek, type LocalDate } from "#domain/date";
 
+import type { AwardView } from "./experience";
+
 export type RowStatus = Outcome | "open";
 
 /**
@@ -24,6 +26,8 @@ export interface DaySummary {
   missed: number;
   state: "open" | "awaitingReview" | "closed";
   sealed: boolean;
+  /** What this day banked, once it has. Null while it is still open. */
+  award: AwardView | null;
 }
 
 /** The three keys, in the order the footer legend prints them. */
@@ -152,7 +156,11 @@ export function logLineLabel(summary: DaySummary, today: LocalDate): string {
   const head = `${dayLabel(summary.date)} · `;
   if (summary.scheduled === 0) return `${head}nothing scheduled`;
   const counts = recordSegments(summary).map((segment) => `${segment.count} ${segment.outcome}`);
-  return `${head}${logState(summary, today)} · ${counts.join(", ")}`;
+  const banked =
+    summary.award === null
+      ? ""
+      : ` · ${summary.award.total} experience${summary.award.held ? ", streak bonus held" : ""}`;
+  return `${head}${logState(summary, today)} · ${counts.join(", ")}${banked}`;
 }
 
 export interface LogSummary {
@@ -162,34 +170,24 @@ export interface LogSummary {
   scheduled: number;
   /** Past days still owing a seal. */
   awaiting: number;
-  /** Sealed days running back from the end of the window. */
-  streak: number;
 }
 
 /**
- * What the log's status line counts.
+ * What the log's status line counts over the window.
  *
- * The streak runs back from the newest date and stops at the first day that
- * was owed a seal and never got one. Today does not break it — it is not late
- * until it is over — and neither does a day the schedule put nothing on, which
- * had nothing to seal in the first place.
+ * There is no streak here. The console has exactly one, the No-Miss Seal Streak,
+ * and it is neither a count of sealed days nor bounded by this window: it is
+ * banked history, so it comes from the server beside the Experience it
+ * multiplies rather than being recounted from the lines on screen.
  */
 export function logSummary(days: readonly DaySummary[], today: LocalDate): LogSummary {
-  const summary: LogSummary = { sealed: 0, scheduled: 0, awaiting: 0, streak: 0 };
-  let running = true;
+  const summary: LogSummary = { sealed: 0, scheduled: 0, awaiting: 0 };
 
   for (const day of days) {
     if (day.scheduled === 0) continue;
     summary.scheduled += 1;
     if (day.sealed) summary.sealed += 1;
     else if (day.date < today) summary.awaiting += 1;
-  }
-
-  for (let index = days.length - 1; index >= 0 && running; index -= 1) {
-    const day = days[index]!;
-    if (day.scheduled === 0) continue;
-    if (day.sealed) summary.streak += 1;
-    else if (day.date < today) running = false;
   }
 
   return summary;
@@ -217,9 +215,15 @@ export function backlogLine(summary: DaySummary): string {
   return `${summary.date} never sealed · ${summary.open} of ${summary.scheduled} unresolved`;
 }
 
-/** The stamp a sealed day wears for good. */
-export function sealStamp(date: LocalDate, done: number, scheduled: number): string {
-  return `sealed ${date} · ${done}/${scheduled} done`;
+/** The stamp a sealed day wears for good, and what it banked wearing it. */
+export function sealStamp(
+  date: LocalDate,
+  done: number,
+  scheduled: number,
+  award: AwardView | null = null,
+): string {
+  const banked = award === null ? "" : ` · +${award.total} XP BANKED`;
+  return `sealed ${date} · ${done}/${scheduled} done${banked}`;
 }
 
 /** Two-digit line numbers, the way a listing prints them. */

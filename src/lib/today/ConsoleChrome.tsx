@@ -24,6 +24,7 @@ import {
   type LogSummary,
   type Mode,
 } from "./console";
+import { closeProjection, levelView, streakLine, type ProgressionView } from "./experience";
 
 interface TopBarProps {
   date: LocalDate;
@@ -169,8 +170,12 @@ interface ProgressLineProps {
   resolved: number;
   scheduled: number;
   open: number;
+  done: number;
+  missed: number;
   /** Undefined until the horizon has been read. */
   balance: BalanceView | undefined;
+  /** Undefined until progression has been read. */
+  progression: ProgressionView | undefined;
   /** False on a day with nothing to seal, and on one already sealed. */
   canSeal: boolean;
   /** False while looking back, where the line is not about today at all. */
@@ -179,15 +184,20 @@ interface ProgressLineProps {
 }
 
 /**
- * The day's progress, written as the command that would finish it. The skip
- * bank rides along on the wide layout: it is what the S key costs, and the
- * narrow one keeps the line to the two numbers a thumb is deciding between.
+ * The day's progress, written as the command that would finish it, and what
+ * running it would bank.
+ *
+ * The projection is on the narrow layout too, because it is the reason to run
+ * the command; the skip bank is not, because it is what a different key costs.
  */
 export function TrackLine({
   resolved,
   scheduled,
   open,
+  done,
+  missed,
   balance,
+  progression,
   canSeal,
   isToday,
   onSeal,
@@ -209,6 +219,14 @@ export function TrackLine({
             {balance.available}/{balance.minted}
           </CommandLineValue>
         </span>
+      )}
+      {progression && (
+        <>
+          {" · "}
+          <CommandLineValue>
+            {closeProjection({ scheduled, done, missed }, progression.streak)}
+          </CommandLineValue>
+        </>
       )}
     </CommandLine>
   );
@@ -241,7 +259,15 @@ export function PlanLine({ count }: { count: number }) {
  * empty window. `0/0 sealed · streak 0d` is a verdict, and a client that never
  * reaches the server would sit under that one indefinitely.
  */
-export function LogLine({ summary, days }: { summary: LogSummary | undefined; days: number }) {
+export function LogLine({
+  summary,
+  days,
+  progression,
+}: {
+  summary: LogSummary | undefined;
+  days: number;
+  progression: ProgressionView | undefined;
+}) {
   return (
     <CommandLine
       action={`log --days ${days}`}
@@ -257,8 +283,19 @@ export function LogLine({ summary, days }: { summary: LogSummary | undefined; da
           <CommandLineValue>
             {summary.sealed}/{summary.scheduled}
           </CommandLineValue>{" "}
-          sealed · <CommandLineValue>{summary.awaiting}</CommandLineValue> still open ·{" "}
-          <CommandLineValue>streak {summary.streak}d</CommandLineValue>
+          sealed ·{" "}
+          <span className="hidden sm:inline">
+            <CommandLineValue>{summary.awaiting}</CommandLineValue> still open ·{" "}
+          </span>
+          {progression && (
+            <>
+              <CommandLineValue>
+                {streakLine(progression.streak, progression.multiplier)}
+              </CommandLineValue>{" "}
+              ·{" "}
+              <CommandLineValue>{levelView(progression.experience).lifetimeLine}</CommandLineValue>
+            </>
+          )}
         </>
       )}
     </CommandLine>

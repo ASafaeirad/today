@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { datesBetween } from "#domain/date";
 
 import { aggregateInsert, clearOwnerAggregates } from "./lib/aggregates";
+import { rebuildProgression } from "./lib/experience";
 import { ownedMutation } from "./lib/functions";
 import { findDayStats, rewriteDayStats } from "./lib/projections";
 
@@ -58,5 +59,18 @@ export const aggregates = ownedMutation({
     for (const instance of instances) await aggregateInsert(ctx, instance);
 
     return { instances: instances.length };
+  },
+});
+
+/**
+ * The lifetime total is a rollup over the awards, and the awards are the
+ * evidence. Refolding it is a sum, never a recomputed reward: an award is
+ * frozen at close, so a rebuild that disagreed with one would be the alarm.
+ */
+export const progression = ownedMutation({
+  args: {},
+  handler: async (ctx) => {
+    const row = await rebuildProgression(ctx, ctx.owner._id);
+    return { experience: row.experience, streak: row.streak };
   },
 });

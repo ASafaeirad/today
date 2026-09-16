@@ -37,6 +37,7 @@ function day(overrides: Partial<DayView> = {}): DayView {
     closingNote: "",
     roster,
     stats: null,
+    award: null,
     ...overrides,
   };
 }
@@ -46,6 +47,22 @@ const sealed = day({
   state: "closed",
   closedAt: 1_757_500_000_000,
   roster: roster.map((line) => ({ ...line, settled: true })),
+  award: {
+    total: 16,
+    doneExperience: 3,
+    baseExperience: 10,
+    streakExperience: 3,
+    held: false,
+    streak: 3,
+    multiplier: 1.3,
+  },
+});
+
+/** The same day with two lines done, which is two points it has not banked. */
+const marked = day({
+  roster: roster.map((line, index) =>
+    index < 2 ? { ...line, outcome: "done" as const, marked: true } : line,
+  ),
 });
 
 const meta = preview.meta({
@@ -121,12 +138,26 @@ export const PhoneReconsidered = meta.story({
   },
 });
 
+/**
+ * A done mark previews the point it would bank, on the line that earned it.
+ * Nothing is banked until the day closes, and a line that is not done shows
+ * nothing at all.
+ */
+export const PendingExperience = meta.story({
+  args: { day: marked },
+  play: async ({ canvas }) => {
+    await expect(canvas.getAllByText("+1 xp")).toHaveLength(2);
+  },
+});
+
 /** A sealed day is read-only: the keys are gone and the line says why. */
 export const Sealed = meta.story({
   args: { day: sealed },
   play: async ({ canvas }) => {
     await expect(canvas.queryByRole("button", { name: "done" })).toBeNull();
     await expect(canvas.getAllByText("locked")).toHaveLength(NAMES.length);
+    // Banked, so there is nothing pending left to preview.
+    await expect(canvas.queryByText("+1 xp")).toBeNull();
   },
 });
 

@@ -2,6 +2,7 @@ export * from "./balance";
 export * from "./constants";
 export * from "./date";
 export * from "./dayStats";
+export * from "./experience";
 export * from "./outcome";
 export * from "./rate";
 export * from "./retirement";

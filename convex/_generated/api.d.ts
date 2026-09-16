@@ -11,11 +11,13 @@
 import type * as auth from "../auth.js";
 import type * as balance from "../balance.js";
 import type * as days from "../days.js";
+import type * as experience from "../experience.js";
 import type * as http from "../http.js";
 import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_balance from "../lib/balance.js";
 import type * as lib_days from "../lib/days.js";
+import type * as lib_experience from "../lib/experience.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_instances from "../lib/instances.js";
 import type * as lib_owner from "../lib/owner.js";
@@ -43,11 +45,13 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   balance: typeof balance;
   days: typeof days;
+  experience: typeof experience;
   http: typeof http;
   "lib/aggregates": typeof lib_aggregates;
   "lib/auth": typeof lib_auth;
   "lib/balance": typeof lib_balance;
   "lib/days": typeof lib_days;
+  "lib/experience": typeof lib_experience;
   "lib/functions": typeof lib_functions;
   "lib/instances": typeof lib_instances;
   "lib/owner": typeof lib_owner;

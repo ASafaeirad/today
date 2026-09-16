@@ -15,6 +15,12 @@ interface Props {
   /** A sealed day is read-only: the keys still print, they just no longer work. */
   sealed: boolean;
   /**
+   * Whether this line is showing Experience it has not banked. True of a done
+   * mark on a day that is still open, and of nothing else: the point goes back
+   * the moment the mark changes.
+   */
+  pending: boolean;
+  /**
    * Whether the three keys are open under this line. A pointer has room to
    * carry them on every row at once; a thumb gets them one row at a time, and
    * the line itself is what opens them.
@@ -32,6 +38,7 @@ export function RosterRow({
   status,
   current,
   sealed,
+  pending,
   open,
   onFocus,
   onOpen,
@@ -43,7 +50,14 @@ export function RosterRow({
   return (
     <Row ref={ref} status={status} current={current && !sealed} onFocusCapture={onFocus}>
       <RowIndex>{pad(index + 1)}</RowIndex>
-      <RowName>{name}</RowName>
+      <span className="flex min-w-0 items-baseline gap-2.5">
+        <RowName>{name}</RowName>
+        {pending ? (
+          <Text size="xs" className="tone-done tone-fg animate-cut whitespace-nowrap">
+            +1 xp
+          </Text>
+        ) : null}
+      </span>
       {/* Keyed on the status so a change lands as a typed word, not a swap. */}
       <RowStatus key={status} typed>
         {status}

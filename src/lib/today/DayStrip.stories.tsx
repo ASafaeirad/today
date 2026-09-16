@@ -21,6 +21,7 @@ function window(): DaySummary[] {
       open: sealed ? 0 : 3,
       state: sealed ? "closed" : "awaitingReview",
       sealed,
+      award: null,
     };
   });
 }

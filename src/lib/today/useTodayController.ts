@@ -8,10 +8,12 @@ import { api } from "#convex/_generated/api";
 import { addDays, type LocalDate } from "#domain/date";
 
 import { errorText, rowStatus, type BalanceView, type DaySummary, type Mode } from "./console";
+import { bankedAnnouncement, markAnnouncement, type ProgressionView } from "./experience";
 import { useMarkInstance, type DayView, type RosterEntry } from "./ledger";
 import { useBacklog } from "./useBacklog";
 import { useBalance } from "./useBalance";
 import { useHistory, type History } from "./useHistory";
+import { useAcknowledgeBackfill, useProgression } from "./useProgression";
 import { useRoutinePlan, type RoutinePlan } from "./useRoutinePlan";
 import { useSealCeremony, type SealCeremony } from "./useSealCeremony";
 
@@ -48,6 +50,18 @@ export interface TodayController {
   backlog: DaySummary | undefined;
   /** What a skip costs, and whether there is one to spend. */
   balance: BalanceView | undefined;
+  /** The banked side of progression. Undefined until the server answers. */
+  progression: ProgressionView | undefined;
+  /**
+   * Experience the day on screen is showing and has not banked: one point per
+   * done mark, and none of it survives a change to that mark.
+   *
+   * Counted off the roster rather than read from the server, which is what lets
+   * it move under an optimistic mark instead of a round trip behind one.
+   */
+  pending: number;
+  /** Puts the backfill summary away for good. */
+  dismissBackfill: () => void;
   seal: SealCeremony;
   /** The last refusal, while the shell is the surface answering for it. */
   notice: string | null;
@@ -100,8 +114,17 @@ export function useViewedDate(today: LocalDate): [LocalDate, (date: LocalDate) =
  * Only a day that sealed under the owner's hands is worth saying: the ref
  * remembers which date was open when it was opened, so stepping onto a day that
  * was already sealed reads as history rather than as an event.
+ *
+ * A day sealed *here* is spoken for by its receipt, which says what it banked
+ * as well as that it closed, and two things cannot say it into one live region.
+ * This is left for the day that seals somewhere else — a second client, or a
+ * tab that was already open on it.
  */
-function useSealAnnouncement(day: DayView | undefined, say: (text: string) => void): void {
+function useSealAnnouncement(
+  day: DayView | undefined,
+  banked: React.RefObject<LocalDate | null>,
+  say: (text: string) => void,
+): void {
   const announcedFor = useRef<LocalDate | null>(null);
 
   useEffect(() => {
@@ -112,8 +135,38 @@ function useSealAnnouncement(day: DayView | undefined, say: (text: string) => vo
     }
     if (announcedFor.current !== day.date) return;
     announcedFor.current = null;
+    if (banked.current === day.date) return;
     say("day sealed");
-  }, [day, say]);
+  }, [day, banked, say]);
+}
+
+/**
+ * One tap, and what it says about the Experience it is previewing.
+ *
+ * A rejected write rolls its own optimistic mark back, and the pending preview
+ * goes with it. The refusal is the only thing said about that: a reward nothing
+ * banked has nothing to take away, and a rollback that announced itself as a
+ * loss would read as a punishment for a dropped connection.
+ */
+function useMarking(
+  day: DayView | undefined,
+  say: (text: string) => void,
+  refuse: (text: string | null) => void,
+): (entry: RosterEntry, outcome: MarkOutcome) => void {
+  const append = useMarkInstance();
+
+  return (entry, outcome) => {
+    if (!day || day.sealed) return;
+    const wasDone = rowStatus(entry) === "done";
+    refuse(null);
+    append({ date: day.date, routineId: entry.routineId, outcome })
+      .then(() => say(`${entry.name} · ${markAnnouncement(outcome, wasDone)}`))
+      .catch((error: unknown) => {
+        const text = errorText(error);
+        refuse(text);
+        say(text);
+      });
+  };
 }
 
 /** The next line still owing a verdict, or the one below if there is none. */
@@ -139,8 +192,14 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
   const plan = useRoutinePlan();
   const backlog = useBacklog();
   const balance = useBalance();
-  const seal = useSealCeremony();
-  const append = useMarkInstance();
+  const progression = useProgression();
+  const dismissBackfill = useAcknowledgeBackfill();
+  const banked = useRef<LocalDate | null>(null);
+  const seal = useSealCeremony((receipt) => {
+    banked.current = receipt.date;
+    setAnnouncement(bankedAnnouncement(receipt));
+  });
+  const mark = useMarking(day, setAnnouncement, setNotice);
 
   const roster = day?.roster ?? [];
   const sealed = day?.sealed ?? false;
@@ -192,19 +251,7 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
     if (mode !== "plan") move();
   };
 
-  const mark = (entry: RosterEntry, outcome: MarkOutcome) => {
-    if (!day || day.sealed) return;
-    setNotice(null);
-    append({ date: day.date, routineId: entry.routineId, outcome })
-      .then(() => setAnnouncement(`${entry.name} ${outcome ?? "open"}`))
-      .catch((error: unknown) => {
-        const text = errorText(error);
-        setNotice(text);
-        setAnnouncement(text);
-      });
-  };
-
-  useSealAnnouncement(day, setAnnouncement);
+  useSealAnnouncement(day, banked, setAnnouncement);
 
   const stepRow = (delta: number) => {
     if (!marking || roster.length === 0) return;
@@ -266,6 +313,9 @@ export function useTodayController(today: LocalDate, refs: TodayRefs): TodayCont
     plan,
     backlog,
     balance,
+    progression,
+    pending: sealed ? 0 : roster.filter((entry) => rowStatus(entry) === "done").length,
+    dismissBackfill,
     seal,
     // The ceremony prints its own refusals, so the shell keeps quiet under it
     // rather than stacking a second copy behind the dialog.

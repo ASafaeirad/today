@@ -12,6 +12,8 @@ export default defineConfig({
     "disciplinarily",
     "endable",
     "lookback",
+    "watchkeeper",
+    "logkeeper",
   ],
   dictionaries: ["project-words"],
   ignorePaths: [

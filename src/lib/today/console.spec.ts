@@ -30,6 +30,7 @@ const summary = (over: Partial<DaySummary> & { date: string }): DaySummary => ({
   missed: 0,
   state: "awaitingReview",
   sealed: false,
+  award: null,
   ...over,
 });
 
@@ -177,27 +178,5 @@ it("the log counts what the window came to, and how much of it was closed", () =
     ],
     today,
   );
-  expect(counted).toEqual({ sealed: 2, scheduled: 4, awaiting: 1, streak: 1 });
-});
-
-it("the streak ends at the first day that was owed a seal and never got one", () => {
-  const today = "2026-09-11";
-  const days = [
-    summary({ date: "2026-09-07", scheduled: 6, done: 6, sealed: true }),
-    summary({ date: "2026-09-08", scheduled: 6, open: 6 }),
-    summary({ date: "2026-09-09", scheduled: 6, done: 6, sealed: true }),
-    // A day the schedule put nothing on had nothing to seal, so it neither
-    // counts toward the streak nor breaks it.
-    summary({ date: "2026-09-10" }),
-    summary({ date: today, scheduled: 6, open: 6 }),
-  ];
-  expect(logSummary(days, today).streak).toBe(1);
-
-  // Today still being open is not a break: it is not late yet.
-  const unbroken = [
-    summary({ date: "2026-09-09", scheduled: 6, done: 6, sealed: true }),
-    summary({ date: "2026-09-10", scheduled: 6, done: 6, sealed: true }),
-    summary({ date: today, scheduled: 6, open: 6 }),
-  ];
-  expect(logSummary(unbroken, today).streak).toBe(2);
+  expect(counted).toEqual({ sealed: 2, scheduled: 4, awaiting: 1 });
 });

@@ -19,6 +19,7 @@ import { DayScreen } from "./DayScreen";
 import { DayStrip } from "./DayStrip";
 import { LogScreen } from "./LogScreen";
 import { PlanScreen } from "./PlanScreen";
+import { BackfillBar, ProgressionBar } from "./ProgressionBar";
 import { SealDialog } from "./SealDialog";
 import { useTodayController, type TodayController } from "./useTodayController";
 
@@ -27,6 +28,7 @@ interface DayFacts {
   scheduled: number;
   open: number;
   done: number;
+  missed: number;
   /** False on a day with nothing to seal, and on one already sealed. */
   canSeal: boolean;
   planning: boolean;
@@ -41,6 +43,7 @@ function factsOf(c: TodayController): DayFacts {
     scheduled,
     open: c.roster.filter((entry) => rowStatus(entry) === "open").length,
     done: c.roster.filter((entry) => rowStatus(entry) === "done").length,
+    missed: c.roster.filter((entry) => rowStatus(entry) === "missed").length,
     // The track line is clickable whatever it says, so the sealed day has to
     // be gated here: `days.close` on a sealed day succeeds as a no-op, which
     // would put an irreversible-looking dialog in front of a record that is
@@ -98,7 +101,7 @@ export function TodayConsole({ today }: { today: LocalDate }) {
       </div>
       <div>
         {c.sealed && facts.tracking ? (
-          <SealStamp text={sealStamp(c.date, facts.done, facts.scheduled)} />
+          <SealStamp text={sealStamp(c.date, facts.done, facts.scheduled, c.day?.award ?? null)} />
         ) : null}
         <ConsoleFooter
           mode={c.mode}
@@ -136,6 +139,10 @@ function ConsoleHead({ c, facts, today, onSeal }: HeadProps) {
   return (
     <div>
       <TopBar date={c.date} mode={c.mode} sealed={c.sealed} onMode={(next) => c.enterMode(next)} />
+      {/* Under the chrome and above the record on every screen: progression is
+          about the ledger rather than about the day, so it outlives the mode. */}
+      <ProgressionBar progression={c.progression} pending={c.pending} />
+      <BackfillBar backfill={c.progression?.backfill} onDismiss={() => c.dismissBackfill()} />
       <DayStrip
         days={c.history.days}
         date={c.date}
@@ -173,13 +180,20 @@ function ConsoleHead({ c, facts, today, onSeal }: HeadProps) {
         {facts.planning ? (
           <PlanLine count={c.plan.routines?.length ?? 0} />
         ) : facts.reading ? (
-          <LogLine summary={c.history.days && logSummary(c.history.days, today)} days={LOG_DAYS} />
+          <LogLine
+            summary={c.history.days && logSummary(c.history.days, today)}
+            days={LOG_DAYS}
+            progression={c.progression}
+          />
         ) : (
           <TrackLine
             resolved={facts.scheduled - facts.open}
             scheduled={facts.scheduled}
             open={facts.open}
+            done={facts.done}
+            missed={facts.missed}
             balance={c.balance}
+            progression={c.progression}
             canSeal={facts.canSeal}
             isToday={!c.lookingBack}
             onSeal={onSeal}

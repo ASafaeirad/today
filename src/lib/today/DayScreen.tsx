@@ -74,6 +74,7 @@ export function DayScreen({ day, date, isToday, cursor, rowRefs, onCursor, onMar
             status={rowStatus(entry)}
             current={index === cursor}
             sealed={day.sealed}
+            pending={!day.sealed && rowStatus(entry) === "done"}
             open={index === openRow}
             onFocus={() => onCursor(index)}
             onOpen={() => {

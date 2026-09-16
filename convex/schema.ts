@@ -113,6 +113,64 @@ export default defineSchema({
     sourceRev: v.number(),
   }).index("by_owner_date", ["ownerId", "date"]),
 
+  /**
+   * The evidence behind progression: one row per eligible local date, written
+   * when that day closes and frozen from then on. A later Amendment to a closed
+   * day does not rewrite what it banked.
+   *
+   * `settled` is the only field that ever moves, and only once: a day closed
+   * over an older awaiting-review day banks what does not depend on the run and
+   * waits for the streak part, which lands when the gap is reviewed.
+   */
+  dayAwards: defineTable({
+    ownerId: v.id("owners"),
+    date: v.string(),
+    /** The outcome counts the award was computed from, as they stood at close. */
+    scheduled: v.number(),
+    done: v.number(),
+    skipped: v.number(),
+    missed: v.number(),
+    doneExperience: v.number(),
+    baseExperience: v.number(),
+    streakExperience: v.number(),
+    /** False while an older awaiting-review day still gates the streak part. */
+    settled: v.boolean(),
+    /** Where this day left the No-Miss Seal Streak. Null until settled. */
+    streak: v.union(v.number(), v.null()),
+    multiplier: v.union(v.number(), v.null()),
+    total: v.number(),
+    bankedAt: v.number(),
+  }).index("by_owner_date", ["ownerId", "date"]),
+
+  /**
+   * The owner-level rollup of the rows above, so reading a level never scans an
+   * unbounded history. Rebuildable from `dayAwards`, which holds the facts.
+   */
+  progression: defineTable({
+    ownerId: v.id("owners"),
+    /** Lifetime banked Experience. Never resets and never falls. */
+    experience: v.number(),
+    /**
+     * The watermark: every eligible day through this date has a final streak
+     * position. Null before the first day is banked.
+     */
+    settledThrough: v.union(v.string(), v.null()),
+    /**
+     * The backfill's watermark: every closed day through this date has an award
+     * row. Null until the walk over existing history starts.
+     */
+    bankedThrough: v.union(v.string(), v.null()),
+    /** The No-Miss Seal Streak as it stands at the watermark. */
+    streak: v.number(),
+    /** What the backfill carried in, reported once and then acknowledged. */
+    backfilledDays: v.number(),
+    backfilledExperience: v.number(),
+    /** When the walk over existing history first reached today. */
+    backfilledAt: v.union(v.number(), v.null()),
+    /** When the owner dismissed the summary of it. */
+    acknowledgedAt: v.union(v.number(), v.null()),
+  }).index("by_owner", ["ownerId"]),
+
   /** Holds no counts at all. Delete every row and you lose progress, nothing else. */
   batchRuns: defineTable({
     ownerId: v.id("owners"),

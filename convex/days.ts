@@ -10,6 +10,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 import { requireSkips } from "./lib/balance";
 import { bumpRev, ensureDay, findDay } from "./lib/days";
+import { bankClose, emptyReceipt, findAward, findProgression } from "./lib/experience";
 import { ownedMutation, ownedQuery, type OwnerContext } from "./lib/functions";
 import { applyResolution, instancesOn, resolveCell } from "./lib/instances";
 import { findDayStats, rewriteDayStats } from "./lib/projections";
@@ -53,6 +54,8 @@ export const get = ownedQuery({
         })),
       ),
       stats: await findDayStats(ctx, ctx.owner._id, args.date),
+      /** What this day banked, once it has. Null while it is still open. */
+      award: awardView(await findAward(ctx, ctx.owner._id, args.date)),
     };
   },
 });
@@ -78,9 +81,10 @@ export const overview = ownedQuery({
     const summaries = new Map(
       await Promise.all(
         [...new Set(args.dates)].map(async (date) => {
-          const [day, instances] = await Promise.all([
+          const [day, instances, award] = await Promise.all([
             findDay(ctx, ctx.owner._id, date),
             instancesOn(ctx, ctx.owner._id, date),
+            findAward(ctx, ctx.owner._id, date),
           ]);
           const summary = {
             date,
@@ -92,6 +96,7 @@ export const overview = ownedQuery({
             state: stateOf(day, date, ctx.today),
             sealed: day?.sealed ?? false,
             closedAt: day?.closedAt ?? null,
+            award: awardView(award),
           };
 
           for (const instance of instances) {
@@ -109,6 +114,24 @@ export const overview = ownedQuery({
     return args.dates.map((date) => summaries.get(date)!);
   },
 });
+
+/**
+ * What a day banked, as the console reads it back. A held award is one whose
+ * streak part an older awaiting-review day is still gating: the total is real
+ * and already banked, but it is not the last word on that day.
+ */
+function awardView(award: Doc<"dayAwards"> | null) {
+  if (award === null) return null;
+  return {
+    total: award.total,
+    doneExperience: award.doneExperience,
+    baseExperience: award.baseExperience,
+    streakExperience: award.streakExperience,
+    held: !award.settled,
+    streak: award.streak,
+    multiplier: award.multiplier,
+  };
+}
 
 /** A day whose date has passed but which has not been closed is awaiting review. */
 function stateOf(day: Doc<"days"> | null | undefined, date: LocalDate, today: LocalDate) {
@@ -213,6 +236,9 @@ export const close = ownedMutation({
       closingNote: args.closingNote ?? "",
     });
     await rewriteDayStats(ctx, ctx.owner._id, args.date);
+    // Banked after the roster is settled and the projection is current, so the
+    // award counts the outcomes the close actually wrote.
+    const receipt = await bankClose(ctx, ctx.owner._id, ctx.today, args.date);
 
     // Retirement is offered at close, never imposed, and never stored.
     const suggestions = [];
@@ -225,7 +251,7 @@ export const close = ownedMutation({
       }
     }
 
-    return { date: args.date, closed: true, alreadyClosed: false, rev, suggestions };
+    return { date: args.date, closed: true, alreadyClosed: false, rev, suggestions, receipt };
   },
 });
 
@@ -235,6 +261,13 @@ async function handleAlreadyClosedDay(
   args: { date: string; seal?: boolean; expectedRev?: number; closingNote?: string },
 ) {
   if (day.closedAt === null) return null;
+
+  // Closing a day twice banks nothing. The award was written by the first close
+  // and is frozen, so the second one reports what stands rather than a reward.
+  const banked = await findAward(ctx, ctx.owner._id, args.date);
+  const lifetime = (await findProgression(ctx, ctx.owner._id))?.experience ?? 0;
+  const receipt = { ...emptyReceipt(args.date, lifetime), eligible: banked !== null };
+
   if (args.seal && !day.sealed) {
     const instances = await instancesOn(ctx, ctx.owner._id, args.date);
     await validateSeal(ctx, day, instances, args);
@@ -249,6 +282,7 @@ async function handleAlreadyClosedDay(
       alreadyClosed: true,
       rev,
       suggestions: [] as { routineId: string; consecutive: number }[],
+      receipt,
     };
   }
   return {
@@ -257,6 +291,7 @@ async function handleAlreadyClosedDay(
     alreadyClosed: true,
     rev: day.rev,
     suggestions: [] as { routineId: string; consecutive: number }[],
+    receipt,
   };
 }
 

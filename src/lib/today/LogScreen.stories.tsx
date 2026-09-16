@@ -5,6 +5,19 @@ import preview from "#storybook/preview";
 import { LOG_DAYS, lookbackDates, type DaySummary } from "./console";
 import { LogScreen } from "./LogScreen";
 
+/** What a clean sealed day banked, at the streak the window ran up to. */
+function award(total: number, held = false): DaySummary["award"] {
+  return {
+    total,
+    doneExperience: total - 13,
+    baseExperience: 10,
+    streakExperience: held ? 0 : 3,
+    held,
+    streak: held ? null : 4,
+    multiplier: held ? null : 1.25,
+  };
+}
+
 const TODAY = "2026-09-11";
 
 /**
@@ -30,6 +43,9 @@ function window(): DaySummary[] {
       missed: 6 - done,
       state: "closed",
       sealed: true,
+      // Everything after the day nobody closed banked its base and is waiting
+      // on that day for the rest.
+      award: award(done + 13, date > "2026-09-09"),
     });
   });
 }
@@ -43,6 +59,7 @@ function blank(over: Partial<DaySummary> & { date: string }): DaySummary {
     missed: 0,
     state: "awaitingReview",
     sealed: false,
+    award: null,
     ...over,
   };
 }
@@ -89,9 +106,32 @@ export const Default = meta.story({
     ).toBeInTheDocument();
 
     await userEvent.click(
-      canvas.getByRole("button", { name: "2026-09-08 · tue · sealed · 4 done, 2 missed" }),
+      canvas.getByRole("button", {
+        name: "2026-09-08 · tue · sealed · 4 done, 2 missed · 17 experience",
+      }),
     );
     await expect(args.onOpen).toHaveBeenCalledWith("2026-09-08");
+  },
+});
+
+/**
+ * The XP column. A day that banked says what it banked; a day still held by an
+ * older one is marked; a lapse and an open day are different kinds of nothing.
+ */
+export const Experience = meta.story({
+  play: async ({ canvas }) => {
+    const sealedRow = canvas.getByRole("button", { name: /2026-09-08/u });
+    await expect(sealedRow).toHaveTextContent("+17");
+
+    // Banked, but not the last word: 09-09 was never closed, so everything
+    // after it is still waiting on it.
+    const heldRow = canvas.getByRole("button", { name: /2026-09-10/u });
+    await expect(heldRow).toHaveAccessibleName(/streak bonus held/u);
+    await expect(heldRow).toHaveTextContent("+17 •");
+
+    // A lapse had nothing to bank; today has not banked yet.
+    await expect(canvas.getByRole("button", { name: /2026-09-06/u })).toHaveTextContent("—");
+    await expect(canvas.getByRole("button", { name: /2026-09-11/u })).toHaveTextContent("·");
   },
 });
 

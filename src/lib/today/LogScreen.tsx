@@ -15,6 +15,7 @@ import {
   type DaySummary,
   type RecordSegment,
 } from "./console";
+import { logExperience } from "./experience";
 
 /** How each outcome paints its share of the bar, in the record's own language. */
 const SEGMENT_FILL = {
@@ -98,6 +99,7 @@ export function LogScreen({ days, today, date, onOpen }: LogScreenProps) {
         <span className="hidden sm:block">dow</span>
         <span>record</span>
         <span className="hidden sm:block">tally</span>
+        <span>xp</span>
         <span className="justify-self-end">state</span>
       </RowHeader>
       <div className="min-h-0 flex-1 overflow-auto">
@@ -163,6 +165,15 @@ function LogRow({
       <RecordBar segments={recordSegments(summary)} />
       <Text size="xs" tone="muted" className="hidden tabular-nums sm:block">
         {dayTally(summary)}
+      </Text>
+      {/* A held day is marked rather than footnoted: the number is banked, it
+          is simply not the last word until the older day is reviewed. */}
+      <Text
+        size="xs"
+        tone={summary.award === null ? "subtle" : undefined}
+        className={cn("tabular-nums", { "tone-skipped tone-fg": summary.award?.held })}
+      >
+        {logExperience(summary.award, summary.sealed)}
       </Text>
       <Text size="xs" tone="muted" tracking="wider" caps className="justify-self-end">
         {state}

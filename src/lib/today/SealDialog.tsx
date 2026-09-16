@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 
 import type { Outcome } from "#domain/outcome";
 
+import { cn } from "#lib/cn";
 import {
   BarItem,
   BarSpacer,
@@ -16,6 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
   Kbd,
+  Meter,
+  MeterIndicator,
+  MeterTrack,
   Panel,
   Row,
   RowIndex,
@@ -32,11 +36,33 @@ import type { SealCeremony } from "./useSealCeremony";
 
 import { OPS, pad, rowStatus, type BalanceView } from "./console";
 import { BalanceItem } from "./ConsoleChrome";
+import {
+  bandNote,
+  bankedTotal,
+  HELD_NOTE,
+  levelUpLine,
+  levelView,
+  leveledUp,
+  receiptLines,
+  RESET_NOTE,
+  type ReceiptView,
+} from "./experience";
+
+const STAGE_LABEL = {
+  resolve: "RESOLVE",
+  lock: "LOCK · FINAL",
+  receipt: "BANKED",
+} as const;
 
 /**
- * The ceremony, in two acts: resolve every open line one at a time, then read
- * the record back and lock it. Nothing is written to the day until the lock, so
- * escape at any point leaves it exactly as open as it was.
+ * The ceremony, in three acts: resolve every open line one at a time, read the
+ * record back and lock it, then read what the lock banked. Nothing is written
+ * to the day until the lock, so escape at either of the first two leaves it
+ * exactly as open as it was.
+ *
+ * The receipt is a stage of this dialog rather than a second one. A level-up
+ * expands it instead of stacking another box over a day that is already closed:
+ * the milestone is the same event, told louder.
  */
 export function SealDialog({
   seal,
@@ -45,7 +71,7 @@ export function SealDialog({
   seal: SealCeremony;
   balance: BalanceView | undefined;
 }) {
-  const { day } = seal;
+  const { day, receipt } = seal;
   const resolving = seal.stage === "resolve";
   const total = day?.roster.length ?? 0;
   // The last word answers to the return key, so the return key has to land on
@@ -61,20 +87,24 @@ export function SealDialog({
     >
       <DialogContent
         className="flex items-end justify-center bg-transparent p-3 data-open:animate-cut sm:items-center sm:p-6"
-        initialFocus={resolving ? undefined : lockRef}
+        initialFocus={resolving && seal.receipt === null ? undefined : lockRef}
       >
         <Panel className="max-h-full w-full max-w-115 bg-background">
           <DialogHeader>
-            <span className="px-2.5 py-1.25">SEAL {seal.date}</span>
+            <span className="px-2.5 py-1.25">
+              {receipt === null ? "SEAL" : "SEALED"} {seal.date}
+            </span>
             <span className="px-2.5 py-1.25">
               {day === undefined
                 ? "OPENING"
                 : resolving
-                  ? `RESOLVE · ${seal.pending.length} LEFT`
-                  : "LOCK · FINAL"}
+                  ? `${STAGE_LABEL.resolve} · ${seal.pending.length} LEFT`
+                  : STAGE_LABEL[seal.stage]}
             </span>
           </DialogHeader>
-          {day === undefined ? (
+          {receipt !== null ? (
+            <ReceiptStage receipt={receipt} onClose={() => seal.cancel()} closeRef={lockRef} />
+          ) : day === undefined ? (
             <DialogBody aria-busy="true">
               <DialogTitle>seal --open</DialogTitle>
               <DialogDescription>reading the record ...</DialogDescription>
@@ -242,5 +272,127 @@ function LockStage({ seal, day, lockRef }: LockStageProps) {
         </Button>
       </DialogFooter>
     </>
+  );
+}
+
+const LINE_TONE = {
+  done: "tone-done tone-fg",
+  seal: "tone-seal tone-fg",
+  skipped: "tone-skipped tone-fg",
+  muted: "text-muted-foreground",
+} as const;
+
+interface ReceiptStageProps {
+  receipt: ReceiptView;
+  onClose: () => void;
+  closeRef: React.RefObject<HTMLButtonElement | null>;
+}
+
+/**
+ * Act three: the reward, itemised. What the marks earned, what closing earned,
+ * what the run multiplied it by, and what settling an older day released.
+ *
+ * A broken run gets a line and a note rather than a smaller number in red: the
+ * ten points for closing are still banked, which is the whole reason the day
+ * was worth facing. A level-up expands this same receipt with a band above it.
+ */
+function ReceiptStage({ receipt, onClose, closeRef }: ReceiptStageProps) {
+  const level = levelView(receipt.experienceAfter);
+
+  useEffect(() => {
+    closeRef.current?.focus();
+  }, [closeRef]);
+
+  return (
+    <>
+      {leveledUp(receipt) ? (
+        <div className="flex animate-cut flex-col gap-1 border-b border-border bg-inverted px-3 py-3.5 text-inverted-foreground">
+          {/* The band has already set the ink it inverts to; every line in it
+              takes that rather than painting itself back to the body colour. */}
+          <Text tone="inherit" size="xs" tracking="widest" caps className="opacity-70">
+            {levelUpLine(receipt)}
+          </Text>
+          <Text tone="inherit" size="xl" tracking="brand" caps>
+            LV {level.plate} · {level.title}
+          </Text>
+          <Text tone="inherit" size="xs" className="opacity-70">
+            {bandNote(level.level)}
+          </Text>
+        </div>
+      ) : null}
+      <DialogBody className="max-w-none">
+        <DialogTitle className="mb-1.5">bank --receipt {receipt.date}</DialogTitle>
+        <div className="border-t border-border">
+          {receiptLines(receipt).map((line) => (
+            <div
+              key={line.id}
+              className="flex items-baseline justify-between gap-3.5 border-b border-border py-1.5"
+            >
+              <Text size="xs" tone="muted" tracking="widest" caps>
+                {line.label}
+              </Text>
+              <Text size="sm" className={cn(LINE_TONE[line.tone], "whitespace-nowrap")}>
+                {line.value}
+              </Text>
+            </div>
+          ))}
+          <div className="flex items-baseline justify-between gap-3.5 py-2.25">
+            <Text size="xs" tracking="widest" caps>
+              banked
+            </Text>
+            <Text size="lg" tracking="wider" caps>
+              {bankedTotal(receipt)}
+            </Text>
+          </div>
+        </div>
+        {receipt.reset ? <ReceiptNote text={RESET_NOTE} /> : null}
+        {receipt.held ? <ReceiptNote text={HELD_NOTE} tone="skipped" /> : null}
+        <div className="mt-2.5 flex items-center gap-2.25">
+          <Meter
+            tone="ink"
+            value={level.percent}
+            aria-label={`level ${level.level}, ${level.into} of ${level.span} experience to level ${level.level + 1}`}
+          >
+            <MeterTrack className="h-2">
+              <MeterIndicator animated />
+            </MeterTrack>
+          </Meter>
+          <Text size="xs" tone="muted" className="whitespace-nowrap">
+            {level.spanLine}
+          </Text>
+        </div>
+      </DialogBody>
+      <DialogFooter>
+        <BarItem tone="muted" divided={false}>
+          {level.lifetimeLine}
+        </BarItem>
+        <BarSpacer />
+        <Button
+          ref={closeRef}
+          variant="accent"
+          className="border-l border-border"
+          onClick={onClose}
+        >
+          <Kbd>&#8629;</Kbd>
+          CLOSE
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
+
+/** A sentence beside the numbers, for the two cases that owe an explanation. */
+function ReceiptNote({ text, tone }: { text: string; tone?: "skipped" }) {
+  return (
+    <div
+      className={cn(
+        "mt-1 border border-border px-2.25 py-2",
+        tone === "skipped" ? "tone-skipped tone-tint" : "bg-chrome",
+      )}
+    >
+      <Text size="xs" tone="muted">
+        {text}
+      </Text>
+    </div>
   );
 }

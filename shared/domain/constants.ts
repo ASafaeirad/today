@@ -21,6 +21,25 @@ export const RETIREMENT_THRESHOLD = 5;
 export const MAX_EAGER_DAYS = 31;
 export const MAX_EAGER_FOLDS = 400;
 
+/**
+ * The Experience one done Instance banks when its day closes, and the reward
+ * for closing a non-empty day at all. The closing reward is the larger of the
+ * two on purpose: the day is finished by reviewing it, not by marking it.
+ */
+export const DONE_EXPERIENCE = 1;
+export const CLOSING_EXPERIENCE = 10;
+
+/** How many Levels one title band covers. */
+export const LEVEL_BAND = 5;
+
+/**
+ * The progression walk's scope rule, in the same shape as the sweep's. The walk
+ * over the calendar that settles awards is bounded per transaction and resumes
+ * from the watermark it commits, so an owner arriving with years of closed
+ * history converges in chunks instead of failing forever.
+ */
+export const MAX_PROGRESSION_DAYS = 120;
+
 /** The document budget a rate answer is measured against. */
 export const RATE_DOCUMENT_LIMIT = 40;
 

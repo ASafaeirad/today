@@ -138,6 +138,12 @@ export default defineSchema({
     /** Where this day left the No-Miss Seal Streak. Null until settled. */
     streak: v.union(v.number(), v.null()),
     multiplier: v.union(v.number(), v.null()),
+    /**
+     * Whether a run that was going ended here. Stored rather than re-derived,
+     * because `streak: 0` alone cannot tell a broken run from one that had not
+     * started — and the owner is told a different thing in each case.
+     */
+    reset: v.boolean(),
     total: v.number(),
     bankedAt: v.number(),
   }).index("by_owner_date", ["ownerId", "date"]),

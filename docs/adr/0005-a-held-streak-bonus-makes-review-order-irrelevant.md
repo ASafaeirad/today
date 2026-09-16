@@ -53,6 +53,8 @@ and local date, which is what makes banking idempotent under a retried close. Th
 is a sum over it and is rebuildable by `rebuild.progression`. An Amendment to an already-closed day
 changes the record and not the award, so progression cannot be farmed by re-marking history.
 
+**A watermark can go backwards, in one case.** The settle walk steps over dates with no roster, because an empty day is neither a stop nor a break in the run — and a date can gain a roster after the walk has passed it. The owner who has just signed up is the ordinary case: the console drives the catch-up before a single routine exists, the watermark passes over an empty today, and the routine named a moment later pins an Instance onto that same day. Writing an award behind the watermark therefore rewinds it to the day before, and the pass that follows takes the day in. Re-walking a settled award reads its streak and moves on, so the rewind cannot change an answer already reached.
+
 **The walks are bounded and resumable.** Both stop after `MAX_PROGRESSION_DAYS` dates and commit
 the watermark they reached, so an owner arriving with years of closed history converges in chunks
 rather than failing in one transaction — the same shape as the sweep (ADR-0002).

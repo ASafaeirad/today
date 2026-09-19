@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import type { RosterEntry } from "./types";
 
-import { nextRosterRoutine, selectedRosterIndex } from "./model";
+import { nextRosterRoutine, selectedRosterIndex, stepLogDate } from "./navigation";
 
 function entry(id: string, marked: boolean): RosterEntry {
   return {
@@ -29,5 +29,21 @@ describe("Roster selection", () => {
 
   it("advances to the next open Routine", () => {
     expect(nextRosterRoutine(roster, 0)).toBe(roster[1]!.routineId);
+  });
+
+  it("steps through Log dates from newest to oldest", () => {
+    const history = (["2026-09-09", "2026-09-10", "2026-09-11"] as const).map((date) => ({
+      date,
+      scheduled: 1,
+      open: 0,
+      done: 1,
+      skipped: 0,
+      missed: 0,
+      state: "closed" as const,
+      sealed: true,
+      award: null,
+    }));
+
+    expect(stepLogDate(history, "2026-09-11", 1)).toBe("2026-09-10");
   });
 });

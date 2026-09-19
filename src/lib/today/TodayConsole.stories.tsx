@@ -16,6 +16,10 @@ const meta = preview.meta({
 
 export const CrossModeNavigation = meta.story({
   play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "previous day" }));
+    await expect(canvas.getByText(/looking back/u)).toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "next day" }));
+    await waitFor(() => expect(canvas.queryByText(/looking back/u)).not.toBeInTheDocument());
     const log = canvas.getByRole("button", { name: "log" });
     await userEvent.click(log);
     await expect(log).toHaveAttribute("aria-pressed", "true");

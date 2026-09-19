@@ -13,7 +13,9 @@ import type {
   SealModel,
 } from "./types";
 
-import { nextRosterRoutine, selectedRosterIndex, useConsoleKeys } from "./model";
+import { useConsoleKeys } from "./keys";
+import { applyRosterMark } from "./marks";
+import { deriveRosterState, nextRosterRoutine, stepLogDate } from "./navigation";
 import { rowStatus, type DaySummary, type Mode } from "./presentation";
 
 const TODAY = "2026-09-11";
@@ -172,14 +174,11 @@ export function useStoryConsoleModel(): ConsoleModel {
     days: 4,
     experience: 52,
   });
-  const index = selectedRosterIndex(roster, selectedRoutine);
-  const selected = roster[index];
-  const counts = (outcome: ReturnType<typeof rowStatus>) =>
-    roster.filter((item) => rowStatus(item) === outcome).length;
+  const { entry: selected, facts, index } = deriveRosterState(roster, false, mode, selectedRoutine);
   const history = [
     summary("2026-09-09", 1, 1, false),
     summary("2026-09-10", 2, 0, true),
-    summary(TODAY, counts("done"), counts("open"), false),
+    summary(TODAY, facts.done, facts.open, false),
   ];
 
   const openDate = (next: LocalDate) => {
@@ -195,11 +194,7 @@ export function useStoryConsoleModel(): ConsoleModel {
   const mark = (routineId: RosterEntry["routineId"], outcome: MarkOutcome) => {
     setNotice(null);
     setRoster((current) => {
-      const optimistic = current.map((item) =>
-        item.routineId === routineId
-          ? { ...item, outcome: outcome ?? "missed", marked: outcome !== null }
-          : item,
-      );
+      const optimistic = applyRosterMark(current, routineId, outcome);
       if (outcome === "skipped") {
         setTimeout(() => {
           setRoster(current);
@@ -220,13 +215,14 @@ export function useStoryConsoleModel(): ConsoleModel {
     setSelectedRoutine(roster[next]?.routineId ?? null);
   };
   const stepLog = (delta: number) => {
-    const ordered = history.toReversed();
-    const current = Math.max(
-      0,
-      ordered.findIndex((item) => item.date === logSelection),
-    );
-    const next = Math.min(Math.max(0, current + delta), ordered.length - 1);
-    setLogSelection(ordered[next]!.date);
+    const next = stepLogDate(history, logSelection, delta);
+    if (next !== null) setLogSelection(next);
+  };
+
+  const stepDay = (delta: number) => {
+    const current = history.findIndex((item) => item.date === date);
+    const next = Math.min(Math.max(0, current + delta), history.length - 1);
+    openDate(history[next]!.date);
   };
 
   const seal = useStorySealModel(roster, mark);
@@ -241,11 +237,7 @@ export function useStoryConsoleModel(): ConsoleModel {
     openLog: () => mode === "log" && openDate(logSelection),
     mark: markCurrent,
     beginClose: () => seal.begin(date),
-    stepDay: (delta) => {
-      const current = history.findIndex((item) => item.date === date);
-      const next = Math.min(Math.max(0, current + delta), history.length - 1);
-      openDate(history[next]!.date);
-    },
+    stepDay,
     today: () => openDate(TODAY),
   });
 
@@ -256,15 +248,7 @@ export function useStoryConsoleModel(): ConsoleModel {
     lookingBack: date !== TODAY,
     day: { status: "ready", value: day(date, roster) },
     roster,
-    facts: {
-      scheduled: roster.length,
-      open: counts("open"),
-      done: counts("done"),
-      missed: counts("missed"),
-      canSeal: roster.length > 0,
-      sealed: false,
-      marking: mode === "track",
-    },
+    facts,
     history: { days: { status: "ready", value: history }, earliest: history[0]!.date },
     canStepBack: date > history[0]!.date,
     canStepForward: date < TODAY,
@@ -277,7 +261,7 @@ export function useStoryConsoleModel(): ConsoleModel {
       status: "ready",
       value: { experience: 52, streak: 2, multiplier: 1.2, heldDays: 0, caughtUp: true, backfill },
     },
-    pendingExperience: counts("done"),
+    pendingExperience: facts.done,
     seal,
     notice,
     announcement,
@@ -285,7 +269,7 @@ export function useStoryConsoleModel(): ConsoleModel {
       enterMode,
       goToDate: openDate,
       openDate,
-      stepDay: () => {},
+      stepDay,
       selectRoster: setSelectedRoutine,
       mark,
       selectLogDate: setLogSelection,

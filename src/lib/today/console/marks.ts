@@ -13,6 +13,18 @@ export interface MarkArgs {
   outcome: MarkOutcome;
 }
 
+export function applyRosterMark(
+  roster: RosterEntry[],
+  routineId: RosterEntry["routineId"],
+  outcome: MarkOutcome,
+): RosterEntry[] {
+  return roster.map((entry) =>
+    entry.routineId === routineId
+      ? { ...entry, outcome: outcome ?? "missed", marked: outcome !== null }
+      : entry,
+  );
+}
+
 /** One optimistic Mark implementation shared by Track and the Close workflow. */
 export function useMarkMutation(): (args: MarkArgs) => Promise<unknown> {
   return useMutation(api.marks.append).withOptimisticUpdate((store, args) => {
@@ -23,11 +35,7 @@ export function useMarkMutation(): (args: MarkArgs) => Promise<unknown> {
       { date: args.date },
       {
         ...current,
-        roster: current.roster.map((entry) =>
-          entry.routineId === args.routineId
-            ? { ...entry, outcome: args.outcome ?? "missed", marked: args.outcome !== null }
-            : entry,
-        ),
+        roster: applyRosterMark(current.roster, args.routineId, args.outcome),
       },
     );
   });

@@ -35,12 +35,18 @@ export function stepLogDate(
 ): LocalDate | null {
   if (history.length === 0) return null;
   const ordered = history.toReversed();
-  const current = Math.max(
-    0,
-    ordered.findIndex((item) => item.date === selected),
-  );
+  const currentDate = selectedLogDate(history, selected);
+  const current = ordered.findIndex((item) => item.date === currentDate);
   const next = Math.min(Math.max(0, current + delta), ordered.length - 1);
   return ordered[next]!.date;
+}
+
+export function selectedLogDate(
+  history: readonly DaySummary[],
+  selected: LocalDate,
+): LocalDate | null {
+  if (history.some((item) => item.date === selected)) return selected;
+  return history.at(-1)?.date ?? null;
 }
 
 export function deriveRosterState(

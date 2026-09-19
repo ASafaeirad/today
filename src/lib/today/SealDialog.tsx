@@ -78,9 +78,7 @@ function sealView(seal: SealModel): SealView | null {
   const day = "day" in workflow ? workflow.day : undefined;
   const pending = "pending" in workflow ? workflow.pending : [];
   const receipt = workflow.state === "receipt" ? workflow.receipt : null;
-  const resolving =
-    workflow.state === "resolving" ||
-    (workflow.state === "refused" && workflow.phase === "resolve");
+  const resolving = pending.length > 0;
   return {
     date: workflow.date,
     day,

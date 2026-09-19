@@ -29,7 +29,7 @@ export function useConsoleKeys(c: KeyCommands): void {
       { hotkey: "D", callback: () => c.mark("done") },
       { hotkey: "M", callback: () => c.mark("missed") },
       { hotkey: "S", callback: () => c.mark("skipped") },
-      { hotkey: "Z", callback: c.beginClose },
+      { hotkey: "Z", callback: () => c.mode === "track" && c.beginClose() },
       { hotkey: "L", callback: () => c.mode !== "plan" && c.stepDay(-1) },
       { hotkey: "H", callback: () => c.mode !== "plan" && c.stepDay(1) },
       { hotkey: "T", callback: () => c.mode !== "plan" && c.today() },

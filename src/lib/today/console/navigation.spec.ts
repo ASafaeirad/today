@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import type { RosterEntry } from "./types";
 
-import { nextRosterRoutine, selectedRosterIndex, stepLogDate } from "./navigation";
+import { nextRosterRoutine, selectedLogDate, selectedRosterIndex, stepLogDate } from "./navigation";
 
 function entry(id: string, marked: boolean): RosterEntry {
   return {
@@ -45,5 +45,7 @@ describe("Roster selection", () => {
     }));
 
     expect(stepLogDate(history, "2026-09-11", 1)).toBe("2026-09-10");
+    expect(selectedLogDate(history, "2026-08-01")).toBe("2026-09-11");
+    expect(stepLogDate(history, "2026-08-01", 1)).toBe("2026-09-10");
   });
 });

@@ -9,7 +9,7 @@ import type { ConsoleModel, RosterEntry } from "./types";
 import { bankedAnnouncement, markAnnouncement } from "../experience";
 import { useConsoleKeys } from "./keys";
 import { useMarkMutation } from "./marks";
-import { deriveRosterState, nextRosterRoutine, stepLogDate } from "./navigation";
+import { deriveRosterState, nextRosterRoutine, selectedLogDate, stepLogDate } from "./navigation";
 import { usePlanModel } from "./plan";
 import { errorText, rowStatus, type Mode } from "./presentation";
 import { useProgressionRead } from "./progression";
@@ -132,9 +132,8 @@ export function useConsoleModel(today: LocalDate): ConsoleModel {
     if (next !== null) setLogSelection(next);
   };
   const openLog = () => {
-    if (mode === "log" && history.some((item) => item.date === logSelection)) {
-      openDate(logSelection);
-    }
+    const selected = selectedLogDate(history, logSelection);
+    if (mode === "log" && selected !== null) openDate(selected);
   };
   const resolveBacklog = () => {
     if (reads.backlog.status !== "ready" || reads.backlog.value === null) return;

@@ -31,6 +31,18 @@ export const CrossModeNavigation = meta.story({
   },
 });
 
+export const CloseHotkeyOnlyWorksInTrackMode = meta.story({
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.keyboard("P");
+    await userEvent.keyboard("Z");
+    await expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("Z");
+    await expect(screen.getByRole("dialog")).toBeInTheDocument();
+  },
+});
+
 export const OptimisticRefusal = meta.story({
   play: async ({ canvas, userEvent }) => {
     const skipped = canvas.getAllByRole("button", { name: "skipped" })[0]!;

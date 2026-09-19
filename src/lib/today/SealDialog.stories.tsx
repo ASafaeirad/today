@@ -61,6 +61,7 @@ interface CeremonyOptions {
   stage?: "resolve" | "lock" | "receipt";
   day?: DayView;
   receipt?: ReceiptView;
+  refusal?: { phase: "resolve" | "lock"; reason: string };
 }
 
 /** A scripted Close adapter for the focused dialog stories. */
@@ -68,8 +69,15 @@ function ceremony(options: CeremonyOptions = {}): SealModel {
   const under = options.day ?? day(0);
   const stage = options.stage ?? "lock";
   const pending = under.roster.filter((line) => rowStatus(line) === "open");
-  const workflow: SealModel["workflow"] =
-    stage === "receipt" && options.receipt
+  const workflow: SealModel["workflow"] = options.refusal
+    ? {
+        state: "refused",
+        date: DATE,
+        day: under,
+        pending,
+        ...options.refusal,
+      }
+    : stage === "receipt" && options.receipt
       ? { state: "receipt", date: DATE, day: under, receipt: options.receipt }
       : stage === "resolve"
         ? { state: "resolving", date: DATE, day: under, pending }
@@ -108,6 +116,21 @@ export const Lock = meta.story({
     await expect(screen.getByText("LOCK · FINAL")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /LOCK/u }));
     await expect(args.seal.lock).toHaveBeenCalled();
+  },
+});
+
+export const RejectedLockWithOpenRows = meta.story({
+  args: {
+    seal: ceremony({
+      day: day(1),
+      refusal: { phase: "lock", reason: "The Day changed before it could Close." },
+    }),
+  },
+  play: async () => {
+    await expect(screen.getByText("RESOLVE · 1 LEFT")).toBeInTheDocument();
+    await expect(screen.getByRole("alert")).toHaveTextContent(
+      "The Day changed before it could Close.",
+    );
   },
 });
 

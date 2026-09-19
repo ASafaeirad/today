@@ -1,5 +1,4 @@
-import { useHotkeys } from "@tanstack/react-hotkeys";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import type { LocalDate } from "#domain/date";
 
@@ -30,8 +29,8 @@ interface LogScreenProps {
   /** The window, oldest first. Undefined while the overview is still reading. */
   days: DaySummary[] | undefined;
   today: LocalDate;
-  /** The day the console is parked on, which seeds the log cursor. */
-  date: LocalDate;
+  selectedDate: LocalDate;
+  onCursor: (date: LocalDate) => void;
   onOpen: (date: LocalDate) => void;
 }
 
@@ -42,35 +41,11 @@ interface LogScreenProps {
  * Opening a day is the only thing it does, which is what makes it safe to be
  * the mode you leave the console sitting in.
  */
-export function LogScreen({ days, today, date, onOpen }: LogScreenProps) {
+export function LogScreen({ days, today, selectedDate, onCursor, onOpen }: LogScreenProps) {
   const orderedDays = days?.slice().reverse() ?? [];
-  const [cursorDate, setCursorDate] = useState<LocalDate>(date);
-  const [parkedOn, setParkedOn] = useState<LocalDate>(date);
   const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  if (parkedOn !== date) {
-    setParkedOn(date);
-    setCursorDate(date);
-  }
-
-  const foundCursor = orderedDays.findIndex((summary) => summary.date === cursorDate);
+  const foundCursor = orderedDays.findIndex((summary) => summary.date === selectedDate);
   const cursor = Math.max(0, foundCursor);
-  const selected = orderedDays[cursor];
-
-  const stepCursor = (delta: number) => {
-    if (orderedDays.length === 0) return;
-    const next = Math.min(Math.max(0, cursor + delta), orderedDays.length - 1);
-    setCursorDate(orderedDays[next]!.date);
-  };
-
-  useHotkeys(
-    [
-      { hotkey: "J", callback: () => stepCursor(1) },
-      { hotkey: "K", callback: () => stepCursor(-1) },
-      { hotkey: "Enter", callback: () => selected && onOpen(selected.date) },
-    ],
-    { enabled: selected !== undefined, preventDefault: true },
-  );
 
   useEffect(() => {
     rowRefs.current[cursor]?.scrollIntoView({ block: "nearest" });
@@ -112,7 +87,7 @@ export function LogScreen({ days, today, date, onOpen }: LogScreenProps) {
             summary={summary}
             today={today}
             selected={index === cursor}
-            onFocus={() => setCursorDate(summary.date)}
+            onFocus={() => onCursor(summary.date)}
             onOpen={onOpen}
           />
         ))}

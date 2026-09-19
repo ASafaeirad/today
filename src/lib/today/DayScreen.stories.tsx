@@ -2,7 +2,7 @@ import { expect, fn, waitFor } from "storybook/test";
 
 import preview from "#storybook/preview";
 
-import type { DayView, RosterEntry } from "./ledger";
+import type { DayView, RosterEntry } from "./console";
 
 import { DayScreen } from "./DayScreen";
 
@@ -73,7 +73,6 @@ const meta = preview.meta({
     date: TODAY,
     isToday: true,
     cursor: 0,
-    rowRefs: { current: [] },
     onCursor: fn(),
     onMark: fn(),
   },

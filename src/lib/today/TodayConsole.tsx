@@ -1,8 +1,19 @@
-import { useRef } from "react";
-
 import type { LocalDate } from "#domain/date";
 
-import { LOG_DAYS, logSummary, lookbackNote, rowStatus, sealCta, sealStamp } from "./console";
+import type { ProgressionView } from "./experience";
+
+import {
+  LOG_DAYS,
+  logSummary,
+  lookbackNote,
+  sealCta,
+  sealStamp,
+  type BalanceView,
+  type ConsoleModel,
+  type DaySummary,
+  type Loadable,
+  useConsoleModel,
+} from "./console";
 import {
   BacklogBar,
   ConsoleFooter,
@@ -21,185 +32,161 @@ import { LogScreen } from "./LogScreen";
 import { PlanScreen } from "./PlanScreen";
 import { BackfillBar, ProgressionBar } from "./ProgressionBar";
 import { SealDialog } from "./SealDialog";
-import { useTodayController, type TodayController } from "./useTodayController";
 
-/** What the whole screen agrees on about the day it is looking at. */
-interface DayFacts {
-  scheduled: number;
-  open: number;
-  done: number;
-  missed: number;
-  /** False on a day with nothing to seal, and on one already sealed. */
-  canSeal: boolean;
-  planning: boolean;
-  /** Track mode: the one mode the day underneath is the subject of. */
-  tracking: boolean;
-  reading: boolean;
-}
-
-function factsOf(c: TodayController): DayFacts {
-  const scheduled = c.roster.length;
-  return {
-    scheduled,
-    open: c.roster.filter((entry) => rowStatus(entry) === "open").length,
-    done: c.roster.filter((entry) => rowStatus(entry) === "done").length,
-    missed: c.roster.filter((entry) => rowStatus(entry) === "missed").length,
-    // The track line is clickable whatever it says, so the sealed day has to
-    // be gated here: `days.close` on a sealed day succeeds as a no-op, which
-    // would put an irreversible-looking dialog in front of a record that is
-    // already locked.
-    canSeal: c.day !== undefined && !c.sealed && scheduled > 0,
-    planning: c.mode === "plan",
-    tracking: c.mode === "track",
-    reading: c.mode === "log",
-  };
-}
-
-/**
- * Three modes, and one day underneath them. Track is the hot path — mark and
- * seal, never edit the list. Plan is where routines are created and retired,
- * and it can do neither of the other two. Log is the record of every day in
- * the window and writes nothing at all.
- *
- * Which day track is on need not be today. Looking back opens the same screen:
- * an unsealed past day is still markable and still sealable, and a sealed one
- * is that same screen behind glass.
- */
+/** The route interface. Convex stays behind the console model. */
 export function TodayConsole({ today }: { today: LocalDate }) {
-  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const c = useTodayController(today, { rowRefs });
-  const facts = factsOf(c);
+  return <TodayConsoleView model={useConsoleModel(today)} />;
+}
 
-  const beginSeal = () => {
-    if (facts.canSeal) c.seal.begin(c.date);
+function readyValue<T>(read: Loadable<T>): T | undefined {
+  return read.status === "ready" ? read.value : undefined;
+}
+
+/** The renderer shared by the production and Storybook adapters. */
+export function TodayConsoleView({ model: c }: { model: ConsoleModel }) {
+  const day = readyValue(c.day);
+  const history = readyValue(c.history.days);
+  const balance = readyValue(c.balance);
+  const handleLogCursor = (date: LocalDate) => c.commands.selectLogDate(date);
+  const handleOpenDate = (date: LocalDate) => c.commands.openDate(date);
+  const beginClose = () => {
+    if (c.facts.canSeal) c.seal.begin(c.date);
   };
 
   return (
     <div className="grid h-full grid-terminal overflow-hidden bg-background text-foreground">
-      <ConsoleHead c={c} facts={facts} today={today} onSeal={beginSeal} />
+      <ConsoleHead model={c} onClose={beginClose} />
       <div className="flex min-h-0 flex-col p-2.5">
-        {facts.planning ? (
-          <PlanScreen plan={c.plan} onDone={() => c.enterMode("track")} />
-        ) : facts.reading ? (
+        {c.mode === "plan" ? (
+          <PlanScreen plan={c.plan} onDone={() => c.commands.enterMode("track")} />
+        ) : c.mode === "log" ? (
           <LogScreen
-            days={c.history.days}
-            today={today}
-            date={c.date}
-            onOpen={(next) => c.goToDate(next)}
+            days={history}
+            today={c.today}
+            selectedDate={c.logSelection}
+            onCursor={handleLogCursor}
+            onOpen={handleOpenDate}
           />
         ) : (
           <DayScreen
-            day={c.day}
+            day={day}
             date={c.date}
             isToday={!c.lookingBack}
-            cursor={c.cursor}
-            rowRefs={rowRefs}
-            onCursor={(index) => c.setCursor(index)}
-            onMark={(entry, outcome) => c.mark(entry, outcome)}
+            cursor={c.rosterSelection.index}
+            onCursor={(index) => {
+              const entry = c.roster[index];
+              if (entry) c.commands.selectRoster(entry.routineId);
+            }}
+            onMark={(entry, outcome) => c.commands.mark(entry.routineId, outcome)}
           />
         )}
       </div>
       <div>
-        {c.sealed && facts.tracking ? (
-          <SealStamp text={sealStamp(c.date, facts.done, facts.scheduled, c.day?.award ?? null)} />
+        {c.facts.sealed && c.mode === "track" ? (
+          <SealStamp
+            text={sealStamp(c.date, c.facts.done, c.facts.scheduled, day?.award ?? null)}
+          />
         ) : null}
         <ConsoleFooter
           mode={c.mode}
-          sealed={c.sealed}
-          marking={c.marking}
-          canSeal={facts.canSeal}
-          sealLabel={sealCta(c.date, today)}
-          onSeal={beginSeal}
+          sealed={c.facts.sealed}
+          marking={c.facts.marking}
+          canSeal={c.facts.canSeal}
+          sealLabel={sealCta(c.date, c.today)}
+          onSeal={beginClose}
         />
         <output aria-live="polite" className="sr-only">
           {c.announcement}
         </output>
       </div>
-      {c.seal.date !== null ? <SealDialog seal={c.seal} balance={c.balance} /> : null}
+      {c.seal.workflow.state !== "idle" ? <SealDialog seal={c.seal} balance={balance} /> : null}
     </div>
   );
 }
 
-interface HeadProps {
-  c: TodayController;
-  facts: DayFacts;
-  today: LocalDate;
-  onSeal: () => void;
-}
-
-/**
- * The chrome above the record: which day, how to reach the others, and every
- * banner that qualifies what is underneath.
- */
-function ConsoleHead({ c, facts, today, onSeal }: HeadProps) {
-  const { backlog } = c;
-  // Nothing to nag about on the very day being resolved.
-  const nagging = facts.tracking && backlog !== undefined && backlog.date !== c.date;
+function ConsoleHead({ model: c, onClose }: { model: ConsoleModel; onClose: () => void }) {
+  const history = readyValue(c.history.days);
+  const backlog = readyValue(c.backlog) ?? null;
+  const progression = readyValue(c.progression);
+  const handleMode = (mode: ConsoleModel["mode"]) => c.commands.enterMode(mode);
+  const handleDismissBackfill = () => c.commands.dismissBackfill();
+  const handlePick = (date: LocalDate) => c.commands.goToDate(date);
+  const handleStep = (delta: number) => c.commands.stepDay(delta);
+  const handleBacklog = () => c.commands.resolveBacklog();
+  const handleDismissNotice = () => c.commands.dismissNotice();
+  const nagging = c.mode === "track" && backlog !== null && backlog.date !== c.date;
 
   return (
     <div>
-      <TopBar date={c.date} mode={c.mode} sealed={c.sealed} onMode={(next) => c.enterMode(next)} />
-      {/* Under the chrome and above the record on every screen: progression is
-          about the ledger rather than about the day, so it outlives the mode. */}
-      <ProgressionBar progression={c.progression} pending={c.pending} />
-      <BackfillBar backfill={c.progression?.backfill} onDismiss={() => c.dismissBackfill()} />
+      <TopBar date={c.date} mode={c.mode} sealed={c.facts.sealed} onMode={handleMode} />
+      <ProgressionBar progression={progression} pending={c.pendingExperience} />
+      <BackfillBar backfill={progression?.backfill} onDismiss={handleDismissBackfill} />
       <DayStrip
-        days={c.history.days}
+        days={history}
         date={c.date}
-        onPick={(next) => c.goToDate(next)}
-        onStep={(delta) => c.stepDay(delta)}
+        onPick={handlePick}
+        onStep={handleStep}
         canStepBack={c.canStepBack}
         canStepForward={c.canStepForward}
       />
-      {facts.planning ? <PlanBanner /> : null}
-      {facts.tracking && c.lookingBack ? (
+      {c.mode === "plan" ? <PlanBanner /> : null}
+      {c.mode === "track" && c.lookingBack ? (
         <LookbackBar
           date={c.date}
-          note={lookbackNote(c.sealed, facts.open)}
-          onToday={() => c.goToDate(today)}
+          note={lookbackNote(c.facts.sealed, c.facts.open)}
+          onToday={() => c.commands.goToDate(c.today)}
         />
       ) : null}
-      {nagging ? (
-        <BacklogBar
-          summary={backlog}
-          onResolve={() => {
-            // The day the nudge names is opened as well as sealed: escaping the
-            // ceremony should leave the owner on the day it was about, rather
-            // than back on today wondering where it went.
-            //
-            // Opened past the window, too. The backlog reaches back forever, so
-            // the day it points at may be older than the oldest cell, and the
-            // strip's reach is no reason to seal a day without showing it.
-            c.openDate(backlog.date);
-            c.seal.begin(backlog.date);
-          }}
-        />
-      ) : null}
-      {c.notice ? <Notice text={c.notice} onDismiss={() => c.dismissNotice()} /> : null}
+      {nagging && backlog ? <BacklogBar summary={backlog} onResolve={handleBacklog} /> : null}
+      {c.notice ? <Notice text={c.notice} onDismiss={handleDismissNotice} /> : null}
       <div className="px-2.5 pt-2.5">
-        {facts.planning ? (
-          <PlanLine count={c.plan.routines?.length ?? 0} />
-        ) : facts.reading ? (
-          <LogLine
-            summary={c.history.days && logSummary(c.history.days, today)}
-            days={LOG_DAYS}
-            progression={c.progression}
-          />
-        ) : (
-          <TrackLine
-            resolved={facts.scheduled - facts.open}
-            scheduled={facts.scheduled}
-            open={facts.open}
-            done={facts.done}
-            missed={facts.missed}
-            balance={c.balance}
-            progression={c.progression}
-            canSeal={facts.canSeal}
-            isToday={!c.lookingBack}
-            onSeal={onSeal}
-          />
-        )}
+        <ConsoleModeLine
+          model={c}
+          history={history}
+          balance={readyValue(c.balance)}
+          progression={progression}
+          onClose={onClose}
+        />
       </div>
     </div>
+  );
+}
+
+function ConsoleModeLine({
+  model: c,
+  history,
+  balance,
+  progression,
+  onClose,
+}: {
+  model: ConsoleModel;
+  history: DaySummary[] | undefined;
+  balance: BalanceView | undefined;
+  progression: ProgressionView | undefined;
+  onClose: () => void;
+}) {
+  if (c.mode === "plan") return <PlanLine count={readyValue(c.plan.routines)?.length ?? 0} />;
+  if (c.mode === "log") {
+    return (
+      <LogLine
+        summary={history && logSummary(history, c.today)}
+        days={LOG_DAYS}
+        progression={progression}
+      />
+    );
+  }
+  return (
+    <TrackLine
+      resolved={c.facts.scheduled - c.facts.open}
+      scheduled={c.facts.scheduled}
+      open={c.facts.open}
+      done={c.facts.done}
+      missed={c.facts.missed}
+      balance={balance}
+      progression={progression}
+      canSeal={c.facts.canSeal}
+      isToday={!c.lookingBack}
+      onSeal={onClose}
+    />
   );
 }

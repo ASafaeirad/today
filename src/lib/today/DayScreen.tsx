@@ -1,12 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { MarkOutcome } from "#domain/outcome";
 
 import { Heading, Panel, PanelBody, RowHeader, Text } from "#ui";
 
-import type { DayView, RosterEntry } from "./ledger";
-
-import { rowStatus } from "./console";
+import { rowStatus, type DayView, type RosterEntry } from "./console";
 import { RosterRow } from "./RosterRow";
 
 interface Props {
@@ -15,13 +13,13 @@ interface Props {
   /** A past day with an empty roster is a lapse, not a slate to fill in. */
   isToday: boolean;
   cursor: number;
-  rowRefs: React.RefObject<(HTMLDivElement | null)[]>;
   onCursor: (index: number) => void;
   onMark: (entry: RosterEntry, outcome: MarkOutcome) => void;
 }
 
 /** Track mode: the day's roster, and the three keys that resolve each line. */
-export function DayScreen({ day, date, isToday, cursor, rowRefs, onCursor, onMark }: Props) {
+export function DayScreen({ day, date, isToday, cursor, onCursor, onMark }: Props) {
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Which line has its keys open under it, on a screen too narrow to carry them
   // on every line at once. One at a time, and never across a change of day: the
   // roster underneath it is a different one.
@@ -32,6 +30,10 @@ export function DayScreen({ day, date, isToday, cursor, rowRefs, onCursor, onMar
     setOpenOn(date);
     setOpenRow(null);
   }
+
+  useEffect(() => {
+    rowRefs.current[cursor]?.scrollIntoView({ block: "nearest" });
+  }, [cursor, day, rowRefs]);
 
   if (day === undefined) return <Boot date={date} />;
 

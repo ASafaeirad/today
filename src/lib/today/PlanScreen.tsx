@@ -1,5 +1,4 @@
 import { valibotResolver } from "@hookform/resolvers/valibot";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as v from "valibot";
 
@@ -31,13 +30,10 @@ import {
   Text,
 } from "#ui";
 
-import type { RoutineView } from "./ledger";
-import type { RoutinePlan } from "./useRoutinePlan";
-
-import { errorText, pad } from "./console";
+import { pad, type CommandResult, type PlanModel, type RoutineView } from "./console";
 
 interface Props {
-  plan: RoutinePlan;
+  plan: PlanModel;
   onDone: () => void;
 }
 
@@ -47,9 +43,21 @@ interface Props {
  * naming one and retiring one.
  */
 export function PlanScreen({ plan, onDone }: Props) {
-  const { routines } = plan;
-  const [removing, setRemoving] = useState<RoutineView | null>(null);
-  const handleRemove = plan.remove;
+  const routines = plan.routines.status === "ready" ? plan.routines.value : undefined;
+  const retirement =
+    plan.workflow.state === "confirming" ||
+    plan.workflow.state === "retiring" ||
+    (plan.workflow.state === "refused" && plan.workflow.operation === "retire")
+      ? plan.workflow.routine
+      : null;
+  const addRefusal =
+    plan.workflow.state === "refused" && plan.workflow.operation === "add"
+      ? plan.workflow.reason
+      : null;
+  const handleRequestRetirement = (routine: RoutineView) => plan.requestRetirement(routine);
+  const handleAdd = (name: string) => plan.add(name);
+  const handleConfirmRetirement = () => plan.confirmRetirement();
+  const handleCancelRetirement = () => plan.cancelRetirement();
 
   return (
     <Panel className="min-h-0 flex-1">
@@ -76,11 +84,16 @@ export function PlanScreen({ plan, onDone }: Props) {
           </PanelBody>
         ) : (
           routines.map((routine, index) => (
-            <PlanRow key={routine._id} index={index} routine={routine} onRemove={setRemoving} />
+            <PlanRow
+              key={routine._id}
+              index={index}
+              routine={routine}
+              onRemove={handleRequestRetirement}
+            />
           ))
         )}
       </div>
-      <DraftField onAdd={(name) => plan.add(name)} />
+      <DraftField onAdd={handleAdd} refusal={addRefusal} />
       {/* The way out of the mode. A pointer has the key and the count beside it;
           a thumb gets the full width of the bar to land on. */}
       <Bar placement="bottom">
@@ -92,11 +105,12 @@ export function PlanScreen({ plan, onDone }: Props) {
           <span className="hidden sm:inline">ESC · </span>back to tracking
         </Button>
       </Bar>
-      {removing ? (
+      {retirement ? (
         <RemoveRoutineDialog
-          routine={removing}
-          onRemove={handleRemove}
-          onClose={() => setRemoving(null)}
+          routine={retirement}
+          workflow={plan.workflow}
+          onRemove={handleConfirmRetirement}
+          onClose={handleCancelRetirement}
         />
       ) : null}
     </Panel>
@@ -132,27 +146,16 @@ function PlanRow({ index, routine, onRemove }: PlanRowProps) {
 
 interface RemoveRoutineDialogProps {
   routine: RoutineView;
-  onRemove: (routine: RoutineView) => Promise<void>;
+  workflow: PlanModel["workflow"];
+  onRemove: () => Promise<CommandResult>;
   onClose: () => void;
 }
 
 /** Retirement needs a deliberate second action because its schedule change is today-forward. */
-function RemoveRoutineDialog({ routine, onRemove, onClose }: RemoveRoutineDialogProps) {
-  const [isRemoving, setIsRemoving] = useState(false);
-  const [refusal, setRefusal] = useState<string | null>(null);
-
-  const remove = async () => {
-    if (isRemoving) return;
-    setIsRemoving(true);
-    setRefusal(null);
-    try {
-      await onRemove(routine);
-      onClose();
-    } catch (error) {
-      setRefusal(errorText(error));
-      setIsRemoving(false);
-    }
-  };
+function RemoveRoutineDialog({ routine, workflow, onRemove, onClose }: RemoveRoutineDialogProps) {
+  const isRemoving = workflow.state === "retiring";
+  const refusal =
+    workflow.state === "refused" && workflow.operation === "retire" ? workflow.reason : null;
 
   return (
     <Dialog
@@ -201,7 +204,7 @@ function RemoveRoutineDialog({ routine, onRemove, onClose }: RemoveRoutineDialog
               variant="accent"
               aria-label="remove routine"
               loading={isRemoving}
-              onClick={() => void remove()}
+              onClick={() => void onRemove()}
             >
               remove routine
             </Button>
@@ -224,7 +227,13 @@ const draftSchema = v.object({
 type Draft = v.InferOutput<typeof draftSchema>;
 
 /** The whole of creation: a name, and the return key. */
-function DraftField({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
+function DraftField({
+  onAdd,
+  refusal,
+}: {
+  onAdd: (name: string) => Promise<CommandResult>;
+  refusal: string | null;
+}) {
   const form = useForm<Draft>({
     resolver: valibotResolver(draftSchema),
     defaultValues: { name: "" },
@@ -232,15 +241,11 @@ function DraftField({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
   const { errors, isSubmitting } = form.formState;
 
   const submit = form.handleSubmit(async ({ name }) => {
-    try {
-      await onAdd(name);
-      form.reset();
-    } catch (error) {
-      form.setError("name", { message: errorText(error) });
-    }
+    const result = await onAdd(name);
+    if (result.ok) form.reset();
   });
 
-  const message = errors.name?.message;
+  const message = errors.name?.message ?? refusal ?? undefined;
 
   return (
     <form

@@ -15,7 +15,7 @@ vi.mock(import("convex/react"), () => ({
   useMutation: () => mutation,
 }));
 
-const { useProgression } = await import("./useProgression");
+const { useProgressionRead } = await import("./progression");
 
 const behind = {
   experience: 0,
@@ -40,7 +40,7 @@ describe("driving the walk over history", () => {
     query.mockReturnValue(behind);
     mutation.mockRejectedValue(new Error("network"));
 
-    renderHook(() => useProgression());
+    renderHook(() => useProgressionRead());
     expect(mutation).toHaveBeenCalledOnce();
 
     // Nothing the query is watching moved, so without the timer the walk would
@@ -55,7 +55,7 @@ describe("driving the walk over history", () => {
     query.mockReturnValue({ ...behind, caughtUp: true });
     mutation.mockResolvedValue({ complete: true });
 
-    renderHook(() => useProgression());
+    renderHook(() => useProgressionRead());
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
     });

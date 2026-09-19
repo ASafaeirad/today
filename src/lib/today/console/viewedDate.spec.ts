@@ -3,7 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import type { LocalDate } from "#domain/date";
 
-import { useViewedDate } from "./useTodayController";
+import { useViewedDate } from "./model";
 
 describe("the date the console is looking at", () => {
   it("follows today over midnight when it was sitting on today", () => {

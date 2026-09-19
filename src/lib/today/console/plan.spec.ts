@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { isRoutinePlanned } from "./useRoutinePlan";
+import { isRoutinePlanned } from "./plan";
 
-describe("the plan routine list", () => {
-  it("shows an active routine from a list response without planned state", () => {
+describe("the Plan Routine list", () => {
+  it("shows an active Routine from an older list response", () => {
     expect(isRoutinePlanned({ state: "active" })).toBe(true);
   });
 

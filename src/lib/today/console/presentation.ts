@@ -7,7 +7,7 @@ import type { Outcome } from "#domain/outcome";
 import { MAX_EAGER_DAYS } from "#domain/constants";
 import { addDays, datesBetween, dayOfWeek, type LocalDate } from "#domain/date";
 
-import type { AwardView } from "./experience";
+import type { AwardView } from "../experience";
 
 export type RowStatus = Outcome | "open";
 

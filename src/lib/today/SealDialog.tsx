@@ -31,10 +31,15 @@ import {
   Text,
 } from "#ui";
 
-import type { DayView, RosterEntry } from "./ledger";
-import type { SealCeremony } from "./useSealCeremony";
-
-import { OPS, pad, rowStatus, type BalanceView } from "./console";
+import {
+  OPS,
+  pad,
+  rowStatus,
+  type BalanceView,
+  type DayView,
+  type RosterEntry,
+  type SealModel,
+} from "./console";
 import { BalanceItem } from "./ConsoleChrome";
 import {
   bandNote,
@@ -54,6 +59,42 @@ const STAGE_LABEL = {
   receipt: "BANKED",
 } as const;
 
+interface SealView {
+  date: string;
+  day: DayView | undefined;
+  stage: "resolve" | "lock" | "receipt";
+  pending: RosterEntry[];
+  refusal: string | null;
+  locking: boolean;
+  receipt: ReceiptView | null;
+  resolve: SealModel["resolve"];
+  lock: SealModel["lock"];
+  cancel: SealModel["cancel"];
+}
+
+function sealView(seal: SealModel): SealView | null {
+  const { workflow } = seal;
+  if (workflow.state === "idle") return null;
+  const day = "day" in workflow ? workflow.day : undefined;
+  const pending = "pending" in workflow ? workflow.pending : [];
+  const receipt = workflow.state === "receipt" ? workflow.receipt : null;
+  const resolving =
+    workflow.state === "resolving" ||
+    (workflow.state === "refused" && workflow.phase === "resolve");
+  return {
+    date: workflow.date,
+    day,
+    stage: receipt ? "receipt" : resolving ? "resolve" : "lock",
+    pending,
+    refusal: workflow.state === "refused" ? workflow.reason : null,
+    locking: workflow.state === "locking",
+    receipt,
+    resolve: seal.resolve,
+    lock: seal.lock,
+    cancel: seal.cancel,
+  };
+}
+
 /**
  * The ceremony, in three acts: resolve every open line one at a time, read the
  * record back and lock it, then read what the lock banked. Nothing is written
@@ -65,19 +106,20 @@ const STAGE_LABEL = {
  * the milestone is the same event, told louder.
  */
 export function SealDialog({
-  seal,
+  seal: model,
   balance,
 }: {
-  seal: SealCeremony;
+  seal: SealModel;
   balance: BalanceView | undefined;
 }) {
+  const lockRef = useRef<HTMLButtonElement>(null);
+  const seal = sealView(model);
+  if (seal === null) return null;
   const { day, receipt } = seal;
   const resolving = seal.stage === "resolve";
   const total = day?.roster.length ?? 0;
   // The last word answers to the return key, so the return key has to land on
   // it — not on whatever the dialog would otherwise focus first.
-  const lockRef = useRef<HTMLButtonElement>(null);
-
   return (
     <Dialog
       open
@@ -130,7 +172,7 @@ function Refusal({ text }: { text: string | null }) {
 }
 
 interface StageProps {
-  seal: SealCeremony;
+  seal: SealView;
   day: DayView;
 }
 
@@ -148,7 +190,7 @@ function ResolveStage({
 }: StageProps & { total: number; balance: BalanceView | undefined }) {
   useHotkeys(
     OPS.map((op) => ({ hotkey: op.key, callback: () => seal.resolve(op.value) })),
-    { enabled: seal.pending.length > 0 },
+    { enabled: seal.pending.length > 0, conflictBehavior: "allow" },
   );
 
   return (

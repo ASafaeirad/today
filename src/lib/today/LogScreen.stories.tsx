@@ -78,7 +78,8 @@ const meta = preview.meta({
   args: {
     days: window(),
     today: TODAY,
-    date: TODAY,
+    selectedDate: TODAY,
+    onCursor: fn(),
     onOpen: fn(),
   },
 });
@@ -137,7 +138,7 @@ export const Experience = meta.story({
 
 /** The day the console is parked on is marked, so returning has a target. */
 export const Current = meta.story({
-  args: { date: "2026-09-09" },
+  args: { selectedDate: "2026-09-09" },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("button", { name: /2026-09-09/u })).toHaveAttribute(
       "aria-current",
@@ -146,21 +147,18 @@ export const Current = meta.story({
   },
 });
 
-/** J and K move the log cursor; Enter opens the selected day. */
-export const KeyboardNavigation = meta.story({
+/** Selection is controlled by the console model; focus reports its candidate. */
+export const ControlledSelection = meta.story({
+  args: { selectedDate: "2026-09-10" },
   play: async ({ args, canvas }) => {
     const september9 = canvas.getByRole("button", { name: /2026-09-09/u });
     const september10 = canvas.getByRole("button", { name: /2026-09-10/u });
 
-    await userEvent.keyboard("jj");
-    await expect(september9).toHaveAttribute("aria-current", "true");
-    await expect(september9).toHaveAttribute("data-current", "true");
-
-    await userEvent.keyboard("k");
     await expect(september10).toHaveAttribute("aria-current", "true");
+    await userEvent.click(september9);
 
-    await userEvent.keyboard("{Enter}");
-    await expect(args.onOpen).toHaveBeenCalledWith("2026-09-10");
+    await expect(args.onCursor).toHaveBeenCalledWith("2026-09-09");
+    await expect(args.onOpen).toHaveBeenCalledWith("2026-09-09");
   },
 });
 

@@ -1,5 +1,3 @@
-import type { FunctionReturnType } from "convex/server";
-
 import { useMutation } from "convex/react";
 
 import type { LocalDate } from "#domain/date";
@@ -7,9 +5,7 @@ import type { MarkOutcome } from "#domain/outcome";
 
 import { api } from "#convex/_generated/api";
 
-export type DayView = FunctionReturnType<typeof api.days.get>;
-export type RosterEntry = DayView["roster"][number];
-export type RoutineView = FunctionReturnType<typeof api.routines.list>[number];
+import type { RosterEntry } from "./types";
 
 export interface MarkArgs {
   date: LocalDate;
@@ -17,14 +13,9 @@ export interface MarkArgs {
   outcome: MarkOutcome;
 }
 
-/**
- * One tap, wherever it is taken from — a row toggle or the seal ceremony. The
- * optimistic update paints the cell before the server has accepted the Mark;
- * a refusal (an unaffordable skip, a sealed day) rolls it back and reaches the
- * caller as a rejection.
- */
-export function useMarkInstance(): (args: MarkArgs) => Promise<unknown> {
-  const append = useMutation(api.marks.append).withOptimisticUpdate((store, args) => {
+/** One optimistic Mark implementation shared by Track and the Close workflow. */
+export function useMarkMutation(): (args: MarkArgs) => Promise<unknown> {
+  return useMutation(api.marks.append).withOptimisticUpdate((store, args) => {
     const current = store.getQuery(api.days.get, { date: args.date });
     if (!current) return;
     store.setQuery(
@@ -40,6 +31,4 @@ export function useMarkInstance(): (args: MarkArgs) => Promise<unknown> {
       },
     );
   });
-
-  return append;
 }

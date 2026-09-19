@@ -3,10 +3,8 @@ import { expect, fn, screen, userEvent } from "storybook/test";
 import preview from "#storybook/preview";
 
 import type { ReceiptView } from "./experience";
-import type { DayView, RosterEntry } from "./ledger";
-import type { SealCeremony } from "./useSealCeremony";
 
-import { rowStatus } from "./console";
+import { rowStatus, type DayView, type RosterEntry, type SealModel } from "./console";
 import { SealDialog } from "./SealDialog";
 
 const DATE = "2026-09-11";
@@ -59,22 +57,29 @@ const receipt: ReceiptView = {
   levelAfter: 4,
 };
 
-/** The ceremony as the dialog reads it: plain values and the four callbacks. */
-function ceremony(over: Partial<SealCeremony> = {}): SealCeremony {
-  const under = over.day === undefined ? day(0) : over.day;
+interface CeremonyOptions {
+  stage?: "resolve" | "lock" | "receipt";
+  day?: DayView;
+  receipt?: ReceiptView;
+}
+
+/** A scripted Close adapter for the focused dialog stories. */
+function ceremony(options: CeremonyOptions = {}): SealModel {
+  const under = options.day ?? day(0);
+  const stage = options.stage ?? "lock";
+  const pending = under.roster.filter((line) => rowStatus(line) === "open");
+  const workflow: SealModel["workflow"] =
+    stage === "receipt" && options.receipt
+      ? { state: "receipt", date: DATE, day: under, receipt: options.receipt }
+      : stage === "resolve"
+        ? { state: "resolving", date: DATE, day: under, pending }
+        : { state: "ready", date: DATE, day: under };
   return {
-    date: DATE,
-    day: under,
-    stage: "lock",
-    pending: (under?.roster ?? []).filter((line) => rowStatus(line) === "open"),
-    refusal: null,
-    locking: false,
-    receipt: null,
+    workflow,
     begin: fn(),
     resolve: fn(),
     lock: fn(),
     cancel: fn(),
-    ...over,
   };
 }
 

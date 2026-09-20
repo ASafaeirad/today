@@ -68,6 +68,7 @@ export const Matrix = meta.story({
                       key={op.value}
                       value={op.value}
                       tone={op.value}
+                      variant="embedded"
                       aria-label={op.value}
                       className="min-h-13 flex-1 sm:min-h-7 sm:flex-none"
                     >

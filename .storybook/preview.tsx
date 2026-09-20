@@ -17,6 +17,38 @@ if (isChromatic()) {
 
 export default definePreview({
   addons: [a11y()],
+  // `system` leaves `data-theme` off so the stylesheet's `prefers-color-scheme`
+  // branch decides. That is what lets the browser emulation in the test run pick
+  // the palette, and it keeps Chromatic rendering the one mode it always has.
+  initialGlobals: { theme: "system" },
+  globalTypes: {
+    theme: {
+      description: "Palette the story is painted in",
+      toolbar: {
+        title: "Theme",
+        icon: "contrast",
+        dynamicTitle: true,
+        items: [
+          { value: "system", title: "System", icon: "browser" },
+          { value: "light", title: "Light", icon: "sun" },
+          { value: "dark", title: "Dark", icon: "moon" },
+        ],
+      },
+    },
+  },
+  decorators: [
+    (Story, { globals }) => {
+      const root = document.documentElement;
+
+      if (globals.theme === "light" || globals.theme === "dark") {
+        root.setAttribute("data-theme", globals.theme);
+      } else {
+        root.removeAttribute("data-theme");
+      }
+
+      return <Story />;
+    },
+  ],
   parameters: {
     layout: "centered",
     controls: {

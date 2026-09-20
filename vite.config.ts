@@ -80,6 +80,8 @@ export default defineConfig({
           globals: true,
           environment: "jsdom",
           setupFiles: ["./vitest.setup.ts"],
+          // Runs before the browser project rather than beside it. See below.
+          sequence: { groupOrder: 0 },
         },
       },
       {
@@ -93,15 +95,23 @@ export default defineConfig({
         ],
         test: {
           name: "storybook",
+          // Each story runs once per theme, so this project asks for twice the
+          // browsers it used to. Run it after the Node project instead of
+          // alongside it: sharing a machine with that many Chromium workers
+          // pushed the Convex simulations past their timeouts.
+          sequence: { groupOrder: 1 },
           browser: {
             enabled: true,
             headless: true,
             provider: playwright({}),
-            instances: [
-              {
-                browser: "chromium",
-              },
-            ],
+            // The palette is chosen by `prefers-color-scheme`, so emulating it is
+            // what puts a story in a theme. Both instances share one Storybook
+            // setup; every story, play function and axe pass runs in each.
+            instances: (["light", "dark"] as const).map((colorScheme) => ({
+              browser: "chromium",
+              name: colorScheme,
+              provider: playwright({ contextOptions: { colorScheme } }),
+            })),
           },
         },
       },

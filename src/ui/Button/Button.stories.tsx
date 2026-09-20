@@ -7,7 +7,13 @@ import { Button, type ButtonProps } from "./Button.tsx";
 
 const meta = preview.meta({ component: Button });
 
-const variants = ["outline", "solid", "accent", "ghost"] satisfies ButtonProps["variant"][];
+const variants = [
+  "outline",
+  "embedded",
+  "solid",
+  "accent",
+  "ghost",
+] satisfies ButtonProps["variant"][];
 
 const rows = {
   Large: { size: "lg" },

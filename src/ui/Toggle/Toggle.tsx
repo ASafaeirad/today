@@ -8,7 +8,7 @@ import { buttonVariants } from "../Button/Button.tsx";
 import { buttonGroupVariants } from "../ButtonGroup/ButtonGroup.tsx";
 
 const toggleVariants = cva(
-  "data-pressed:tone-bg data-pressed:tone-border disabled:pointer-events-none data-pressed:disabled:opacity-100",
+  "data-pressed:tone-bg disabled:pointer-events-none data-pressed:disabled:opacity-100",
   {
     variants: {
       /* Which meaning this key commits the record to once it is pressed. */
@@ -28,15 +28,22 @@ const toggleVariants = cva(
 
 export type ToggleProps = TogglePrimitive.Props &
   VariantProps<typeof toggleVariants> &
-  Pick<VariantProps<typeof buttonVariants>, "size">;
+  Pick<VariantProps<typeof buttonVariants>, "size" | "variant">;
 
-export function Toggle({ className, tone = "ink", size = "default", ...props }: ToggleProps) {
+export function Toggle({
+  className,
+  tone = "ink",
+  variant = "outline",
+  size = "default",
+  ...props
+}: ToggleProps) {
   return (
     <TogglePrimitive
       data-slot="toggle"
       className={cn(
-        buttonVariants({ variant: "outline", size }),
+        buttonVariants({ variant, size }),
         toggleVariants({ tone }),
+        { "data-pressed:tone-border": variant === "outline" },
         className,
       )}
       {...props}

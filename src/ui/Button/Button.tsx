@@ -11,6 +11,9 @@ const buttonVariants = cva(
         /* The operation key: a hairline box that inverts as you press it. */
         outline:
           "border-border text-muted-foreground hover:border-muted-foreground hover:bg-panel hover:text-foreground active:bg-inverted active:text-inverted-foreground",
+        /* A control inside a bordered row: the row owns the horizontal rules. */
+        embedded:
+          "border-x-border border-y-transparent text-muted-foreground hover:border-x-muted-foreground hover:bg-chrome hover:text-foreground active:bg-inverted active:text-inverted-foreground",
         /* Committed emphasis: ink and surface traded places. */
         solid: "bg-inverted text-inverted-foreground hover:brightness-115 active:brightness-75",
         /* The irreversible one — sealing a record. */

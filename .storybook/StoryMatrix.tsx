@@ -51,7 +51,7 @@ export function StoryMatrix({ columns, rows, cell, className }: StoryMatrixProps
                   scope={subColumnCount > 0 ? "colgroup" : "col"}
                   colSpan={subColumnCount || undefined}
                   rowSpan={withSubs && subColumnCount === 0 ? 2 : undefined}
-                  className="border border-border px-6 py-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground"
+                  className="border border-border px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground"
                 >
                   {col.label}
                 </th>
@@ -65,7 +65,7 @@ export function StoryMatrix({ columns, rows, cell, className }: StoryMatrixProps
                   <th
                     key={`${col.label}-${subCol}-${index}`}
                     scope="col"
-                    className="border border-border px-6 py-2 text-center text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70"
+                    className="border border-border px-6 py-2 text-center text-xs font-medium uppercase tracking-widest text-subtle-foreground"
                   >
                     {subCol}
                   </th>
@@ -77,7 +77,7 @@ export function StoryMatrix({ columns, rows, cell, className }: StoryMatrixProps
         <tbody>
           {rows.map((row) => (
             <tr key={row}>
-              <td className="border border-border px-5 py-4 text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap text-muted-foreground">
+              <td className="border border-border px-5 py-4 text-xs font-semibold uppercase tracking-widest whitespace-nowrap text-muted-foreground">
                 {row}
               </td>
               {flat.map(({ col, subCol }, i) => (

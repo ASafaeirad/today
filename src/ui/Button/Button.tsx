@@ -66,7 +66,9 @@ export function Button({
           &#9612;
         </span>
       )}
-      <span className={cn("inline-flex items-center gap-1.5", { invisible: loading })}>
+      {/* Hidden with opacity, not `visibility`: the cursor takes the label's place
+          on screen, but the label has to stay the button's accessible name. */}
+      <span className={cn("inline-flex items-center gap-1.5", { "opacity-0": loading })}>
         {children}
       </span>
     </ButtonPrimitive>

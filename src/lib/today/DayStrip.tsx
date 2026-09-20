@@ -161,7 +161,7 @@ function DayCell({ summary, current, onPhone, onPick }: DayCellProps) {
       <Text size="xs" tone="inherit" className="pb-0.75 text-center leading-tight">
         {summary.date.slice(8)}
       </Text>
-      <Text size="xs" tone="inherit" className="pb-1 text-center leading-none opacity-60">
+      <Text size="xs" tone="inherit" className="pb-1 text-center leading-none opacity-75">
         {weekday(summary.date)}
       </Text>
     </button>

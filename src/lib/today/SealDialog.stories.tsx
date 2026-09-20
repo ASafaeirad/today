@@ -104,7 +104,7 @@ const meta = preview.meta({
 export const Resolve = meta.story({
   args: { seal: ceremony({ day: day(2), stage: "resolve" }) },
   play: async ({ args }) => {
-    await expect(screen.getByText("RESOLVE · 2 LEFT")).toBeInTheDocument();
+    await expect(screen.findByText("RESOLVE · 2 LEFT")).resolves.toBeInTheDocument();
     await expect(screen.getByText("Stretch").closest('[data-slot="row"]')).not.toHaveClass(
       "animate-seal-row",
     );
@@ -116,7 +116,7 @@ export const Resolve = meta.story({
 /** Act two: the record as it will stand, and the word that makes it final. */
 export const Lock = meta.story({
   play: async ({ args }) => {
-    await expect(screen.getByText("LOCK · FINAL")).toBeInTheDocument();
+    await expect(screen.findByText("LOCK · FINAL")).resolves.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /LOCK/u }));
     await expect(args.seal.lock).toHaveBeenCalled();
   },
@@ -130,7 +130,7 @@ export const RejectedLockWithOpenRows = meta.story({
     }),
   },
   play: async () => {
-    await expect(screen.getByText("RESOLVE · 1 LEFT")).toBeInTheDocument();
+    await expect(screen.findByText("RESOLVE · 1 LEFT")).resolves.toBeInTheDocument();
     await expect(screen.getByRole("alert")).toHaveTextContent(
       "The Day changed before it could Close.",
     );
@@ -144,7 +144,7 @@ export const RejectedLockWithOpenRows = meta.story({
 export const Receipt = meta.story({
   args: { seal: ceremony({ stage: "receipt", receipt }) },
   play: async ({ args }) => {
-    await expect(screen.getByText("SEALED")).toBeInTheDocument();
+    await expect(screen.findByText("SEALED")).resolves.toBeInTheDocument();
     await expect(screen.getByText("BANKED")).toBeInTheDocument();
     await expect(screen.getByText("done marks × 6")).toBeInTheDocument();
     await expect(screen.getByText("closing the day")).toBeInTheDocument();
@@ -180,7 +180,7 @@ export const LevelUp = meta.story({
     }),
   },
   play: async () => {
-    await expect(screen.getByText("level up · 3 → 4")).toBeInTheDocument();
+    await expect(screen.findByText("level up · 3 → 4")).resolves.toBeInTheDocument();
     await expect(screen.getByText("LV 04 · WATCHKEEPER")).toBeInTheDocument();
     await expect(screen.getByText("title band holds through lv 5")).toBeInTheDocument();
     await expect(screen.getByText("LV 04 · WATCHKEEPER").closest("[data-reveal]")).toHaveAttribute(
@@ -225,7 +225,7 @@ export const StreakReset = meta.story({
     }),
   },
   play: async () => {
-    await expect(screen.getByText("no-miss streak 0d ×1.00")).toBeInTheDocument();
+    await expect(screen.findByText("no-miss streak 0d ×1.00")).resolves.toBeInTheDocument();
     await expect(screen.getByText(/the 10 xp for closing is still yours/u)).toBeInTheDocument();
     await expect(screen.getByText("+14 XP")).toBeInTheDocument();
   },
@@ -251,7 +251,7 @@ export const BonusHeld = meta.story({
     }),
   },
   play: async () => {
-    await expect(screen.getByText("no-miss streak bonus")).toBeInTheDocument();
+    await expect(screen.findByText("no-miss streak bonus")).resolves.toBeInTheDocument();
     await expect(screen.getByText("held")).toBeInTheDocument();
     await expect(
       screen.getByText(/the streak bonus follows once that day is settled/u),
@@ -271,7 +271,7 @@ export const ReleasedBacklog = meta.story({
     }),
   },
   play: async () => {
-    await expect(screen.getByText("released from settled backlog")).toBeInTheDocument();
+    await expect(screen.findByText("released from settled backlog")).resolves.toBeInTheDocument();
     await expect(screen.getByText("+18 xp")).toBeInTheDocument();
     await expect(screen.getByText("+41 XP")).toBeInTheDocument();
   },

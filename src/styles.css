@@ -27,8 +27,8 @@
   --surface-line: hsl(from var(--surface) h calc(s + 1) calc(l + 9.5));
 
   /* ── Ink scale — faded back toward the surface ─────────────── */
-  --ink-dim: hsl(from var(--ink) h calc(s - 33) calc(l - 17));
-  --ink-dimmer: hsl(from var(--ink) h calc(s - 36) calc(l - 26));
+  --ink-dim: hsl(from var(--ink) h calc(s - 33) calc(l - 25));
+  --ink-dimmer: hsl(from var(--ink) h calc(s - 36) calc(l - 30.5));
 
   /* Text laid over a vivid fill: the far end of the surface scale. */
   --on-vivid: var(--surface);
@@ -74,8 +74,8 @@
   --surface-chrome: hsl(from var(--surface) h s calc(l - 5));
   --surface-line: hsl(from var(--surface) h calc(s - 1.5) calc(l - 14.5));
 
-  --ink-dim: hsl(from var(--ink) h calc(s - 30) calc(l + 18));
-  --ink-dimmer: hsl(from var(--ink) h calc(s - 32) calc(l + 25));
+  --ink-dim: hsl(from var(--ink) h calc(s - 30) calc(l + 20));
+  --ink-dimmer: hsl(from var(--ink) h calc(s - 32) calc(l + 28));
 
   --on-vivid: var(--surface-panel);
   --overlay: hsl(from var(--surface) h s 100 / 0.8);
@@ -96,8 +96,8 @@
     --surface-chrome: hsl(from var(--surface) h s calc(l - 5));
     --surface-line: hsl(from var(--surface) h calc(s - 1.5) calc(l - 14.5));
 
-    --ink-dim: hsl(from var(--ink) h calc(s - 30) calc(l + 18));
-    --ink-dimmer: hsl(from var(--ink) h calc(s - 32) calc(l + 25));
+    --ink-dim: hsl(from var(--ink) h calc(s - 30) calc(l + 20));
+    --ink-dimmer: hsl(from var(--ink) h calc(s - 32) calc(l + 28));
 
     --on-vivid: var(--surface-panel);
     --overlay: hsl(from var(--surface) h s 100 / 0.8);

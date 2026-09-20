@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { expect, within } from "storybook/test";
 
 import { StoryMatrix } from "#storybook/matrix";
 import preview from "#storybook/preview";
@@ -47,4 +48,15 @@ export const Matrix = meta.story({
       }}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // The loading state hides the label to make room for the cursor. It has to
+    // hide it on screen only: a busy button still has to announce what it does.
+    const busy = canvas
+      .getAllByRole("button", { name: "seal" })
+      .filter((button) => button.hasAttribute("aria-busy"));
+
+    await expect(busy).toHaveLength(variants.length);
+  },
 });

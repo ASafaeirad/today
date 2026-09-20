@@ -1,0 +1,26 @@
+name: Chromatic
+
+# Chromatic recommends running on `push` rather than `pull_request`: pull_request events
+# build GitHub's ephemeral merge commit, which never becomes a usable baseline.
+on: push
+
+jobs:
+  visual-review:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Chromatic walks git history to find each build's baseline.
+          fetch-depth: 0
+      - uses: voidzero-dev/setup-vp@v1.19.0
+        with:
+          cache: true
+      - run: vp install
+      - run: vp run build-storybook
+      - uses: chromaui/action@v18
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # Built above through `vp` so Chromatic does not have to guess the package manager.
+          storybookBuildDir: storybook-static

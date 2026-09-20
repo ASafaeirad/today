@@ -7,6 +7,7 @@
 - In reusable components that render form controls, derive element `id`/`htmlFor` from React's `useId()`.
 - Never use Tailwind arbitrary values (`[...]`). Use standard utilities, named theme tokens, or a dedicated CSS class instead. Reuse an existing theme token with the same purpose before adding a new token, even when its color differs from the design reference.
 - Test UI components through Storybook stories. Put interaction assertions in story `play` functions and run them through the Storybook Vitest project. Do not add standalone Testing Library component specs when a story can cover the behavior. Follow https://storybook.js.org/docs/writing-tests.
+- Chromatic snapshots every story on push, so each story is also a visual baseline and any style change can move one. A red `Chromatic` check means snapshots differ and are waiting on the maintainer to accept them: it is a human review gate, not a failure to debug. Report the build URL and name the stories you expected to move; never green it by deleting a story or setting `chromatic: { disableSnapshot: true }`.
 
 <!-- DEVELOPMENT GUIDE END -->
 

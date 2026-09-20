@@ -7,8 +7,11 @@ const kbdVariants = cva("font-mono whitespace-nowrap", {
     variant: {
       /* A key you press: an inverted block, the way the footer legend prints it. */
       key: "border border-current px-1",
-      /* A key printed inside a control, dimmed until the control is engaged. */
-      hint: "opacity-50 group-hover/control:opacity-100 group-data-pressed/control:opacity-100",
+      /* A key printed inside a control, dimmed until the control is engaged.
+         The dimming is alpha rather than a paler ink so the hint keeps whatever
+         the control is painted in; 85% is as faint as that leaves it while the
+         letter still clears 4.5:1 on every fill a control can take. */
+      hint: "opacity-85 group-hover/control:opacity-100 group-data-pressed/control:opacity-100",
     },
   },
   defaultVariants: {

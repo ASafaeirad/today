@@ -175,7 +175,7 @@ function RemoveRoutineDialog({ routine, workflow, onRemove, onClose }: RemoveRou
       >
         <Panel className="max-h-full w-full max-w-115 bg-background">
           <DialogHeader>
-            <Text className="px-2.5 py-1.25" caps tracking="widest">
+            <Text tone="inherit" className="px-2.5 py-1.25" caps tracking="widest">
               REMOVE ROUTINE
             </Text>
           </DialogHeader>

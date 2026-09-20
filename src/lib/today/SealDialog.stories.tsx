@@ -105,6 +105,9 @@ export const Resolve = meta.story({
   args: { seal: ceremony({ day: day(2), stage: "resolve" }) },
   play: async ({ args }) => {
     await expect(screen.getByText("RESOLVE · 2 LEFT")).toBeInTheDocument();
+    await expect(screen.getByText("Stretch").closest('[data-slot="row"]')).not.toHaveClass(
+      "animate-seal-row",
+    );
     await userEvent.click(screen.getByRole("button", { name: /done/u }));
     await expect(args.seal.resolve).toHaveBeenCalledWith("done");
   },
@@ -141,7 +144,7 @@ export const RejectedLockWithOpenRows = meta.story({
 export const Receipt = meta.story({
   args: { seal: ceremony({ stage: "receipt", receipt }) },
   play: async ({ args }) => {
-    await expect(screen.getByText(`SEALED ${DATE}`)).toBeInTheDocument();
+    await expect(screen.getByText("SEALED")).toBeInTheDocument();
     await expect(screen.getByText("BANKED")).toBeInTheDocument();
     await expect(screen.getByText("done marks × 6")).toBeInTheDocument();
     await expect(screen.getByText("closing the day")).toBeInTheDocument();
@@ -150,14 +153,24 @@ export const Receipt = meta.story({
     // The lifetime total has moved by exactly what the receipt says.
     await expect(screen.getByText("126 XP")).toBeInTheDocument();
 
+    const firstGain = screen.getByText("done marks × 6").closest("[data-reveal-order]");
+    const lastGain = screen.getByText("no-miss streak 6d ×1.70").closest("[data-reveal-order]");
+    await expect(firstGain).toHaveAttribute("data-reveal-order", "1");
+    await expect(lastGain).toHaveAttribute("data-reveal-order", "3");
+    await expect(lastGain).toHaveStyle("animation-delay: 0.48s");
+    await expect(screen.getByText("+23 XP").closest("[data-reveal]")).toHaveAttribute(
+      "data-reveal",
+      "banked-total",
+    );
+
     await userEvent.click(screen.getByRole("button", { name: /CLOSE/u }));
     await expect(args.seal.cancel).toHaveBeenCalled();
   },
 });
 
 /**
- * A level-up expands the same receipt rather than opening a second dialog: the
- * milestone is the same event as the close, told louder.
+ * A level-up closes the same receipt rather than opening a second dialog. Its
+ * reserved final block keeps the receipt still when the milestone appears.
  */
 export const LevelUp = meta.story({
   args: {
@@ -170,6 +183,24 @@ export const LevelUp = meta.story({
     await expect(screen.getByText("level up · 3 → 4")).toBeInTheDocument();
     await expect(screen.getByText("LV 04 · WATCHKEEPER")).toBeInTheDocument();
     await expect(screen.getByText("title band holds through lv 5")).toBeInTheDocument();
+    await expect(screen.getByText("LV 04 · WATCHKEEPER").closest("[data-reveal]")).toHaveAttribute(
+      "data-reveal",
+      "level-up",
+    );
+    await expect(screen.getByText("LV 04 · WATCHKEEPER").closest("[data-reveal]")).toHaveStyle(
+      "animation-delay: 1.69s",
+    );
+    await expect(
+      screen.getByText("LV 04 · WATCHKEEPER").closest("[data-reveal]")?.parentElement,
+    ).toHaveAttribute("data-slot", "dialog-body");
+    await expect(
+      screen.getByText("LV 04 · WATCHKEEPER").closest("[data-reveal]")?.parentElement,
+    ).toHaveStyle("overflow-x: hidden");
+    await expect(screen.getByText("LV 04 · WATCHKEEPER").closest("[data-reveal]")).toHaveClass(
+      "-mx-2.5",
+      "-mb-4.5",
+      "border-t",
+    );
   },
 });
 

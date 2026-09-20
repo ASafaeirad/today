@@ -1,5 +1,5 @@
 import { useHotkeys } from "@tanstack/react-hotkeys";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 import type { Outcome } from "#domain/outcome";
 
@@ -58,6 +58,14 @@ const STAGE_LABEL = {
   lock: "LOCK · FINAL",
   receipt: "BANKED",
 } as const;
+
+const REVEAL_START_MS = 80;
+const REVEAL_STEP_MS = 200;
+const GAIN_PAUSE_MS = 150;
+
+function revealStyle(index: number, start = REVEAL_START_MS): CSSProperties {
+  return { animationDelay: `${start + index * REVEAL_STEP_MS}ms` };
+}
 
 interface SealView {
   date: string;
@@ -131,9 +139,7 @@ export function SealDialog({
       >
         <Panel className="max-h-full w-full max-w-115 bg-background">
           <DialogHeader>
-            <span className="px-2.5 py-1.25">
-              {receipt === null ? "SEAL" : "SEALED"} {seal.date}
-            </span>
+            <span className="px-2.5 py-1.25">{receipt === null ? "SEAL" : "SEALED"}</span>
             <span className="px-2.5 py-1.25">
               {day === undefined
                 ? "OPENING"
@@ -187,7 +193,10 @@ function ResolveStage({
   balance,
 }: StageProps & { total: number; balance: BalanceView | undefined }) {
   useHotkeys(
-    OPS.map((op) => ({ hotkey: op.key, callback: () => seal.resolve(op.value) })),
+    OPS.map((op) => ({
+      hotkey: op.key,
+      callback: () => seal.resolve(op.value),
+    })),
     { enabled: seal.pending.length > 0, conflictBehavior: "allow" },
   );
 
@@ -270,7 +279,11 @@ function LockStage({ seal, day, lockRef }: LockStageProps) {
             {day.roster.map((entry, index) => {
               const status = rowStatus(entry);
               return (
-                <TableRow key={entry.instanceId}>
+                <TableRow
+                  key={entry.instanceId}
+                  className="animate-seal-row"
+                  style={revealStyle(index)}
+                >
                   <TableCell tone="neutral">{pad(index + 1)}</TableCell>
                   <TableCell>{entry.name}</TableCell>
                   <TableCell tone={status === "open" ? "neutral" : status} align="end">
@@ -334,10 +347,17 @@ interface ReceiptStageProps {
  *
  * A broken run gets a line and a note rather than a smaller number in red: the
  * ten points for closing are still banked, which is the whole reason the day
- * was worth facing. A level-up expands this same receipt with a band above it.
+ * was worth facing. A level-up closes the receipt with a final reward block.
  */
 function ReceiptStage({ receipt, onClose, closeRef }: ReceiptStageProps) {
   const level = levelView(receipt.experienceAfter);
+  const lines = receiptLines(receipt);
+  const totalDelay = REVEAL_START_MS + lines.length * REVEAL_STEP_MS + GAIN_PAUSE_MS;
+  const noteDelay = totalDelay + 260;
+  const hasNote = receipt.reset || receipt.held;
+  const progressDelay = noteDelay + (hasNote ? 180 : 0);
+  const lifetimeDelay = progressDelay + 420;
+  const levelUpDelay = lifetimeDelay + 180;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -345,28 +365,15 @@ function ReceiptStage({ receipt, onClose, closeRef }: ReceiptStageProps) {
 
   return (
     <>
-      {leveledUp(receipt) ? (
-        <div className="flex animate-cut flex-col gap-1 border-b border-border bg-inverted px-3 py-3.5 text-inverted-foreground">
-          {/* The band has already set the ink it inverts to; every line in it
-              takes that rather than painting itself back to the body colour. */}
-          <Text tone="inherit" size="xs" tracking="widest" caps className="opacity-70">
-            {levelUpLine(receipt)}
-          </Text>
-          <Text tone="inherit" size="xl" tracking="brand" caps>
-            LV {level.plate} · {level.title}
-          </Text>
-          <Text tone="inherit" size="xs" className="opacity-70">
-            {bandNote(level.level)}
-          </Text>
-        </div>
-      ) : null}
-      <DialogBody className="max-w-none">
+      <DialogBody className="max-w-none overflow-x-hidden">
         <DialogTitle className="mb-1.5">bank --receipt {receipt.date}</DialogTitle>
         <div className="border-t border-border">
-          {receiptLines(receipt).map((line) => (
+          {lines.map((line, index) => (
             <div
               key={line.id}
-              className="flex items-baseline justify-between gap-3.5 border-b border-border py-1.5"
+              className="flex animate-seal-row items-baseline justify-between gap-3.5 border-b border-border py-1.5"
+              style={revealStyle(index)}
+              data-reveal-order={index + 1}
             >
               <Text size="xs" tone="muted" tracking="widest" caps>
                 {line.label}
@@ -376,34 +383,72 @@ function ReceiptStage({ receipt, onClose, closeRef }: ReceiptStageProps) {
               </Text>
             </div>
           ))}
-          <div className="flex items-baseline justify-between gap-3.5 py-2.25">
-            <Text size="xs" tracking="widest" caps>
+          <div
+            className="flex animate-seal-row items-baseline justify-between gap-3.5 py-2.25"
+            style={revealStyle(0, totalDelay)}
+            data-reveal="banked-total"
+          >
+            <Text size="xs" tone="inherit" tracking="widest" caps>
               banked
             </Text>
-            <Text size="lg" tracking="wider" caps>
+            <Text size="lg" tone="inherit" tracking="wider" caps>
               {bankedTotal(receipt)}
             </Text>
           </div>
         </div>
-        {receipt.reset ? <ReceiptNote text={RESET_NOTE} /> : null}
-        {receipt.held ? <ReceiptNote text={HELD_NOTE} tone="skipped" /> : null}
-        <div className="mt-2.5 flex items-center gap-2.25">
+        {receipt.reset ? <ReceiptNote text={RESET_NOTE} revealAt={noteDelay} /> : null}
+        {receipt.held ? <ReceiptNote text={HELD_NOTE} tone="skipped" revealAt={noteDelay} /> : null}
+        <div
+          className="mt-2.5 flex animate-seal-progress items-center gap-2.25"
+          style={revealStyle(0, progressDelay)}
+          data-reveal="level-progress"
+        >
           <Meter
             tone="ink"
             value={level.percent}
             aria-label={`level ${level.level}, ${level.into} of ${level.span} experience to level ${level.level + 1}`}
           >
             <MeterTrack className="h-2">
-              <MeterIndicator animated />
+              <MeterIndicator
+                animated
+                style={{
+                  ...revealStyle(0, progressDelay),
+                  animationDuration: "360ms",
+                }}
+              />
             </MeterTrack>
           </Meter>
           <Text size="xs" tone="muted" className="whitespace-nowrap">
             {level.spanLine}
           </Text>
         </div>
+        {leveledUp(receipt) ? (
+          <div
+            className="-mx-2.5 -mb-4.5 mt-2.5 flex animate-seal-level-up flex-col gap-1 overflow-hidden border-t border-border bg-inverted px-3 py-3.5 text-inverted-foreground"
+            style={revealStyle(0, levelUpDelay)}
+            data-reveal="level-up"
+          >
+            {/* The block has already set the ink it inverts to; every line in it
+                takes that rather than painting itself back to the body colour. */}
+            <Text tone="inherit" size="xs" tracking="widest" caps className="opacity-70">
+              {levelUpLine(receipt)}
+            </Text>
+            <Text tone="inherit" size="xl" tracking="brand" caps>
+              LV {level.plate} · {level.title}
+            </Text>
+            <Text tone="inherit" size="xs" className="opacity-70">
+              {bandNote(level.level)}
+            </Text>
+          </div>
+        ) : null}
       </DialogBody>
       <DialogFooter>
-        <BarItem tone="muted" divided={false}>
+        <BarItem
+          tone="muted"
+          divided={false}
+          className="animate-seal-row"
+          style={revealStyle(0, lifetimeDelay)}
+        >
           {level.lifetimeLine}
         </BarItem>
         <BarSpacer />
@@ -422,13 +467,22 @@ function ReceiptStage({ receipt, onClose, closeRef }: ReceiptStageProps) {
 }
 
 /** A sentence beside the numbers, for the two cases that owe an explanation. */
-function ReceiptNote({ text, tone }: { text: string; tone?: "skipped" }) {
+function ReceiptNote({
+  text,
+  tone,
+  revealAt,
+}: {
+  text: string;
+  tone?: "skipped";
+  revealAt: number;
+}) {
   return (
     <div
       className={cn(
-        "mt-1 border border-border px-2.25 py-2",
+        "mt-1 animate-seal-row border border-border px-2.25 py-2",
         tone === "skipped" ? "tone-skipped tone-tint" : "bg-chrome",
       )}
+      style={revealStyle(0, revealAt)}
     >
       <Text size="xs" tone="muted">
         {text}

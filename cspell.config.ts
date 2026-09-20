@@ -4,6 +4,8 @@ export default defineConfig({
   version: "0.2",
   words: [
     "vite",
+    "chromaui",
+    "voidzero",
     "fullstacksjs",
     "ASafaeirad",
     "unreviewed",

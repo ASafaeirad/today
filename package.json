@@ -18,6 +18,8 @@
     "build": "tsc && vp build",
     "preview": "vp preview",
     "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "chromatic": "chromatic",
     "prepare": "vp config --hooks-dir config/vite-hooks"
   },
   "dependencies": {
@@ -57,6 +59,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
     "@vitest/browser-playwright": "catalog:",
+    "chromatic": "18.9.4",
     "convex": "1.43.0",
     "convex-test": "0.0.55",
     "cspell": "10.1.1",

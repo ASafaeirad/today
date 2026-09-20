@@ -1,4 +1,5 @@
 import "../src/styles.css";
+import a11y from "@storybook/addon-a11y";
 import { definePreview } from "@storybook/tanstack-react";
 import isChromatic from "chromatic/isChromatic";
 import { sb } from "storybook/test";
@@ -15,7 +16,7 @@ if (isChromatic()) {
 }
 
 export default definePreview({
-  addons: [],
+  addons: [a11y()],
   parameters: {
     layout: "centered",
     controls: {
@@ -23,6 +24,27 @@ export default definePreview({
         color: /(background|color)$/i,
         date: /date$/i,
       },
+    },
+    a11y: {
+      config: {
+        rules: [
+          // A story is an isolated fragment, not a page: the landmark rules would
+          // fire on every one of them for a reason the app itself does not have.
+          { id: "region", enabled: false },
+          { id: "landmark-one-main", enabled: false },
+          { id: "page-has-heading-one", enabled: false },
+          // WCAG 1.4.3 exempts text that belongs to an inactive control, which is
+          // exactly what the `data-disabled:opacity-50` treatment marks. axe cannot
+          // read that intent off a `<label>` or `<p>`, so scope the rule past it.
+          {
+            id: "color-contrast",
+            selector:
+              "*:not([data-disabled]:not([data-disabled='false']) *):not([data-disabled]:not([data-disabled='false']))",
+          },
+        ],
+      },
+      // Violations fail the Vitest run rather than only reporting in the panel.
+      test: "error",
     },
   },
 });

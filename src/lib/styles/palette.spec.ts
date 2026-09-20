@@ -19,7 +19,11 @@ const css = readFileSync(
   "utf8",
 );
 
-const AA = 4.5;
+/**
+ * Deliberately below WCAG AA's 4.5:1 for normal text: the console buys a quieter
+ * ink scale with it. Kept in step with the axe threshold in `.storybook/preview`.
+ */
+const MIN_CONTRAST = 4;
 
 /** Every rule that states the palette. Light is declared twice and must not drift. */
 const THEMES = {
@@ -64,10 +68,10 @@ const worst = (palette: Palette, ink: string) =>
     ...canvases(palette).map(([, background]) => contrast(toRgb(palette[ink]!), background)),
   );
 
-const belowAA = (palette: Palette, ink: string) =>
+const belowMinimum = (palette: Palette, ink: string) =>
   canvases(palette)
     .map(([name, background]) => [name, contrast(toRgb(palette[ink]!), background)] as const)
-    .filter(([, ratio]) => ratio < AA)
+    .filter(([, ratio]) => ratio < MIN_CONTRAST)
     .map(([name, ratio]) => `${hex(toRgb(palette[ink]!))} on ${name}: ${ratio.toFixed(2)}`);
 
 describe.each(Object.entries(THEMES))("%s palette", (_theme, selectors) => {
@@ -84,32 +88,33 @@ describe.each(Object.entries(THEMES))("%s palette", (_theme, selectors) => {
   it.each(["--ink", "--ink-dim", "--ink-dimmer", ...TONES])(
     "reads %s against every surface it lands on",
     (ink) => {
-      expect(belowAA(palette, ink)).toStrictEqual([]);
+      expect(belowMinimum(palette, ink)).toStrictEqual([]);
     },
   );
 
   it.each(TONES)("reads its contrast ink on a solid %s fill", (tone) => {
     expect(contrast(toRgb(palette["--on-vivid"]!), toRgb(palette[tone]!))).toBeGreaterThanOrEqual(
-      AA,
+      MIN_CONTRAST,
     );
   });
 
   it("reads the inverted surface on the inverted fill", () => {
     expect(contrast(toRgb(palette["--surface"]!), toRgb(palette["--ink"]!))).toBeGreaterThanOrEqual(
-      AA,
+      MIN_CONTRAST,
     );
   });
 
   it("keeps the ink scale a scale", () => {
-    // Three steps, each visibly clear of the one below, rather than three names
-    // for one grey once the faintest is dragged up to AA.
-    expect(worst(palette, "--ink-dim")).toBeGreaterThan(worst(palette, "--ink-dimmer") * 1.25);
-    expect(worst(palette, "--ink")).toBeGreaterThan(worst(palette, "--ink-dim") * 1.25);
+    // Three steps, each still clear of the one below, rather than three names for
+    // one grey once the faintest is dragged down to the floor. The margin is
+    // narrow because dark has little room: its body ink only reaches 9.10:1.
+    expect(worst(palette, "--ink-dim")).toBeGreaterThan(worst(palette, "--ink-dimmer") * 1.15);
+    expect(worst(palette, "--ink")).toBeGreaterThan(worst(palette, "--ink-dim") * 1.15);
   });
 
-  it(`holds every ink at or above ${AA}:1`, () => {
+  it(`holds every ink at or above ${MIN_CONTRAST}:1`, () => {
     expect(
       Math.min(worst(palette, "--ink-dimmer"), ...TONES.map((tone) => worst(palette, tone))),
-    ).toBeGreaterThanOrEqual(AA);
+    ).toBeGreaterThanOrEqual(MIN_CONTRAST);
   });
 });

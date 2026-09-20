@@ -1,7 +1,9 @@
+import { expect } from "storybook/test";
+
 import { StoryMatrix } from "#storybook/matrix";
 import preview from "#storybook/preview";
 
-import { Button } from "../Button/Button.tsx";
+import { Button, type ButtonProps } from "../Button/Button.tsx";
 import { Kbd } from "./Kbd.tsx";
 
 const meta = preview.meta({ component: Kbd });
@@ -36,4 +38,37 @@ export const Matrix = meta.story({
       }}
     />
   ),
+});
+
+const buttonVariants = ["outline", "solid", "accent", "ghost"] satisfies ButtonProps["variant"][];
+
+export const InButtons = meta.story({
+  render: () => (
+    <StoryMatrix
+      columns={buttonVariants.map((variant) => ({ label: variant }))}
+      rows={["Key", "Hint"]}
+      cell={({ row, col }) => (
+        <Button variant={col as ButtonProps["variant"]}>
+          <Kbd variant={row === "Key" ? "key" : "hint"}>D</Kbd>
+          done
+        </Button>
+      )}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const view = canvasElement.ownerDocument.defaultView;
+
+    await Promise.all(
+      Array.from(canvasElement.querySelectorAll<HTMLElement>('[data-slot="button"]')).map(
+        async (button) => {
+          const kbd = button.querySelector<HTMLElement>('[data-slot="kbd"]');
+
+          await expect(kbd).not.toBeNull();
+          await expect(view?.getComputedStyle(kbd!).color).toBe(
+            view?.getComputedStyle(button).color,
+          );
+        },
+      ),
+    );
+  },
 });

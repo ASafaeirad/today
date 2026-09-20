@@ -39,7 +39,7 @@ export const CloseHotkeyOnlyWorksInTrackMode = meta.story({
 
     await userEvent.keyboard("{Escape}");
     await userEvent.keyboard("Z");
-    await expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await expect(screen.findByRole("dialog")).resolves.toBeInTheDocument();
   },
 });
 
@@ -56,7 +56,7 @@ export const OptimisticRefusal = meta.story({
 export const BacklogClose = meta.story({
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "resolve" }));
-    await expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await expect(screen.findByRole("dialog")).resolves.toBeInTheDocument();
     await expect(screen.getByText(/RESOLVE/u)).toBeInTheDocument();
   },
 });

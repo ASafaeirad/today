@@ -104,7 +104,7 @@ export const WithRoutine = meta.story({
   args: { routines: [morningPages] },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "remove" }));
-    await expect(screen.getByRole("dialog")).toHaveTextContent(
+    await expect(screen.findByRole("dialog")).resolves.toHaveTextContent(
       'Retire "Morning pages" after today?',
     );
     await expect(remove).not.toHaveBeenCalled();
@@ -112,7 +112,7 @@ export const WithRoutine = meta.story({
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     await userEvent.click(canvas.getByRole("button", { name: "remove" }));
-    await userEvent.click(screen.getByRole("button", { name: "remove routine" }));
+    await userEvent.click(await screen.findByRole("button", { name: "remove routine" }));
     await expect(remove).toHaveBeenCalledWith(morningPages);
     await expect(screen.getByRole("button", { name: "remove routine" })).toHaveAttribute(
       "aria-busy",
@@ -128,7 +128,7 @@ export const RemovalRefused = meta.story({
   play: async ({ canvas, userEvent }) => {
     remove.mockRejectedValueOnce(new Error("Routine could not be retired"));
     await userEvent.click(canvas.getByRole("button", { name: "remove" }));
-    await userEvent.click(screen.getByRole("button", { name: "remove routine" }));
+    await userEvent.click(await screen.findByRole("button", { name: "remove routine" }));
     await expect(screen.findByRole("alert")).resolves.toHaveTextContent(
       "Routine could not be retired",
     );

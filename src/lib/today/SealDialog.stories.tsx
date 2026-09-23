@@ -124,7 +124,7 @@ export const Lock = meta.story({
 
 export const OutsidePointerCloses = meta.story({
   play: async ({ args }) => {
-    const panel = screen.getByText("LOCK · FINAL").closest('[data-slot="panel"]');
+    const panel = (await screen.findByText("LOCK · FINAL")).closest('[data-slot="panel"]');
     const content = screen.getByRole("dialog");
     await userEvent.pointer({ keys: "[MouseLeft]", target: panel! });
     await expect(args.seal.cancel).not.toHaveBeenCalled();

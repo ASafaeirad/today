@@ -10,19 +10,31 @@ const meta = preview.meta({
   args: { backfill: { days: 84, experience: 1_407 }, onDismiss: fn() },
 });
 
-/**
- * The one line an owner's existing history gets. It is a summary, not a
- * ceremony: no old day is replayed, and the notice does not come back.
- */
+/** The one-time receipt for existing closed history. */
 export const Default = meta.story({
   play: async ({ args, canvas }) => {
-    await expect(
-      canvas.getByText(
-        "84 closed days summarized · 1407 xp carried in · lv 12 WARDEN · no day-by-day replay",
-      ),
-    ).toBeInTheDocument();
+    await expect(canvas.getByRole("status")).toHaveTextContent(
+      "We counted 84 closed days and added 1,407 XP to your total.",
+    );
 
-    await userEvent.click(canvas.getByRole("button", { name: "understood" }));
+    await userEvent.click(canvas.getByRole("button", { name: "dismiss" }));
+    await expect(args.onDismiss).toHaveBeenCalled();
+  },
+});
+
+/** The notice wraps beside a thumb-sized dismissal control on a phone. */
+export const Mobile = meta.story({
+  globals: { viewport: { value: "mobile1" } },
+  play: async ({ args, canvas, canvasElement }) => {
+    const notice = canvas.getByRole("status").parentElement;
+    const dismiss = canvas.getByRole("button", { name: "dismiss" });
+
+    await expect(canvasElement.getBoundingClientRect().width).toBeLessThanOrEqual(400);
+    await expect(notice).not.toBeNull();
+    await expect(notice!.scrollWidth).toBeLessThanOrEqual(notice!.clientWidth);
+    await expect(dismiss.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+
+    await userEvent.click(dismiss);
     await expect(args.onDismiss).toHaveBeenCalled();
   },
 });

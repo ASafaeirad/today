@@ -102,10 +102,9 @@ export function logExperience(award: AwardView | null, sealed: boolean): string 
   return `+${award.total}${award.held ? " •" : ""}`;
 }
 
-/** The one line the backfill gets, in place of replaying every old day. */
+/** The one-time summary of history already counted in the owner's total. */
 export function backfillLine(days: number, experience: number): string {
-  const progress = levelProgress(experience);
-  return `${days} closed days summarized · ${experience} xp carried in · lv ${progress.level} ${progress.title} · no day-by-day replay`;
+  return `We counted ${days.toLocaleString()} closed ${days === 1 ? "day" : "days"} and added ${experience.toLocaleString()} XP to your total.`;
 }
 
 /** What a receipt says about crossing into a new title band. */

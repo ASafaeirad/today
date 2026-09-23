@@ -131,10 +131,7 @@ function LevelMeter({ level }: { level: LevelView }) {
   );
 }
 
-/**
- * What an owner who already had closed history is told, once: their past was
- * counted, in one line, rather than replayed one reward animation at a time.
- */
+/** A brief, dismissible receipt for experience carried in from closed history. */
 export function BackfillBar({
   backfill,
   onDismiss,
@@ -144,15 +141,14 @@ export function BackfillBar({
 }) {
   if (backfill == null) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 border-b border-border px-2.5 py-1.5">
-      <Text size="xs" tracking="widest" caps>
-        experience --backfill
-      </Text>
-      <Text tone="muted" size="xs" className="min-w-0 flex-1">
-        {backfillLine(backfill.days, backfill.experience)}
-      </Text>
-      <Button size="sm" className="min-h-11 sm:min-h-6" onClick={onDismiss}>
-        understood
+    <div className="flex min-w-0 items-center gap-2 border-b border-border bg-chrome px-2.5 py-1">
+      <output className="min-w-0 flex-1">
+        <Text as="p" size="sm" className="leading-snug">
+          {backfillLine(backfill.days, backfill.experience)}
+        </Text>
+      </output>
+      <Button variant="ghost" size="sm" className="min-h-11 sm:min-h-6" onClick={onDismiss}>
+        dismiss
       </Button>
     </div>
   );

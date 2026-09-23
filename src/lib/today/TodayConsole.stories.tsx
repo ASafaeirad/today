@@ -63,10 +63,10 @@ export const BacklogClose = meta.story({
 
 export const BackfillAcknowledgment = meta.story({
   play: async ({ canvas, userEvent }) => {
-    await expect(canvas.getByText(/4 closed days summarized/u)).toBeInTheDocument();
-    await userEvent.click(canvas.getByRole("button", { name: "understood" }));
+    await expect(canvas.getByText(/We counted 4 closed days/u)).toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "dismiss" }));
     await waitFor(() =>
-      expect(canvas.queryByText(/4 closed days summarized/u)).not.toBeInTheDocument(),
+      expect(canvas.queryByText(/We counted 4 closed days/u)).not.toBeInTheDocument(),
     );
   },
 });

@@ -73,10 +73,11 @@ it("names the level the title band runs out at, and says when it never does", ()
   expect(bandNote(200)).toBe("OVERSEER is the last title — it holds from here on");
 });
 
-it("summarizes carried-in history in one line", () => {
+it("summarizes counted history without repeating the current level", () => {
   expect(backfillLine(84, 1407)).toBe(
-    "84 closed days summarized · 1407 xp carried in · lv 12 WARDEN · no day-by-day replay",
+    "We counted 84 closed days and added 1,407 XP to your total.",
   );
+  expect(backfillLine(1, 12)).toBe("We counted 1 closed day and added 12 XP to your total.");
 });
 
 describe("what a mark says to whoever is listening", () => {

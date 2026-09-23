@@ -136,6 +136,9 @@ export function SealDialog({
       <DialogContent
         className="flex items-end justify-center bg-transparent p-3 data-open:animate-cut sm:items-center sm:p-6"
         initialFocus={resolving && seal.receipt === null ? undefined : lockRef}
+        onPointerDown={(event) => {
+          if (event.target === event.currentTarget) seal.cancel();
+        }}
       >
         <Panel className="max-h-full w-full max-w-115 bg-background">
           <DialogHeader>

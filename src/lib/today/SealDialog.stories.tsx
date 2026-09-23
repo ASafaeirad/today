@@ -122,6 +122,17 @@ export const Lock = meta.story({
   },
 });
 
+export const OutsidePointerCloses = meta.story({
+  play: async ({ args }) => {
+    const panel = screen.getByText("LOCK · FINAL").closest('[data-slot="panel"]');
+    const content = screen.getByRole("dialog");
+    await userEvent.pointer({ keys: "[MouseLeft]", target: panel! });
+    await expect(args.seal.cancel).not.toHaveBeenCalled();
+    await userEvent.pointer({ keys: "[MouseLeft]", target: content });
+    await expect(args.seal.cancel).toHaveBeenCalledTimes(1);
+  },
+});
+
 export const RejectedLockWithOpenRows = meta.story({
   args: {
     seal: ceremony({

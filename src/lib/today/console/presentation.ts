@@ -212,7 +212,7 @@ export function nudgeDates(backlog: readonly LocalDate[], limit = MAX_EAGER_DAYS
 
 /** `2026-09-10 never sealed · 3 of 6 unresolved` */
 export function backlogLine(summary: DaySummary): string {
-  return `${summary.date} never sealed · ${summary.open} of ${summary.scheduled} unresolved`;
+  return `${summary.date} never sealed`;
 }
 
 /** The stamp a sealed day wears for good, and what it banked wearing it. */

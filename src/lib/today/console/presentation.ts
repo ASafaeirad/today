@@ -210,7 +210,7 @@ export function nudgeDates(backlog: readonly LocalDate[], limit = MAX_EAGER_DAYS
   return [...backlog].sort().slice(0, limit);
 }
 
-/** `2026-09-10 never sealed · 3 of 6 unresolved` */
+/** `2026-09-10 never sealed` */
 export function backlogLine(summary: DaySummary): string {
   return `${summary.date} never sealed`;
 }

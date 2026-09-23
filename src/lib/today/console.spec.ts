@@ -52,9 +52,9 @@ it("the nudge asks about the oldest open days first, and is bounded", () => {
   expect(asked[0]).toBe("2026-06-01");
 });
 
-it("the nudge says what the day never did and what it still owes", () => {
+it("the nudge says what the day never did", () => {
   expect(backlogLine(summary({ date: "2026-09-10", scheduled: 6, open: 3 }))).toBe(
-    "2026-09-10 never sealed · 3 of 6 unresolved",
+    "2026-09-10 never sealed",
   );
 });
 

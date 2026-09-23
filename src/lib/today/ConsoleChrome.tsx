@@ -29,18 +29,10 @@ import { closeProjection, levelView, streakLine, type ProgressionView } from "./
 interface TopBarProps {
   date: LocalDate;
   mode: Mode;
-  sealed: boolean;
   onMode: (mode: Mode) => void;
 }
 
-const DAY_STATE = {
-  sealed: "sealed",
-  plan: "planning",
-  track: "open",
-  log: "log",
-} as const;
-
-export function TopBar({ date, mode, sealed, onMode }: TopBarProps) {
+export function TopBar({ date, mode, onMode }: TopBarProps) {
   return (
     <Bar>
       <BarBrand>today</BarBrand>
@@ -70,10 +62,6 @@ export function TopBar({ date, mode, sealed, onMode }: TopBarProps) {
           </Toggle>
         ))}
       </ToggleGroup>
-      <BarItem tone="muted" divided={false}>
-        {/* The log is about every day, so no one day's seal speaks for it. */}
-        {sealed && mode !== "log" ? DAY_STATE.sealed : DAY_STATE[mode]}
-      </BarItem>
     </Bar>
   );
 }

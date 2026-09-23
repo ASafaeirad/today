@@ -118,7 +118,7 @@ function ConsoleHead({ model: c, onClose }: { model: ConsoleModel; onClose: () =
 
   return (
     <div>
-      <TopBar date={c.date} mode={c.mode} sealed={c.facts.sealed} onMode={handleMode} />
+      <TopBar date={c.date} mode={c.mode} onMode={handleMode} />
       <ProgressionBar progression={progression} pending={c.pendingExperience} />
       <BackfillBar backfill={progression?.backfill} onDismiss={handleDismissBackfill} />
       <DayStrip

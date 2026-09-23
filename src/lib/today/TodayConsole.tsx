@@ -8,7 +8,6 @@ import {
   lookbackNote,
   sealCta,
   sealStamp,
-  type BalanceView,
   type ConsoleModel,
   type DaySummary,
   type Loadable,
@@ -21,10 +20,8 @@ import {
   LookbackBar,
   Notice,
   PlanBanner,
-  PlanLine,
   SealStamp,
   TopBar,
-  TrackLine,
 } from "./ConsoleChrome";
 import { DayScreen } from "./DayScreen";
 import { DayStrip } from "./DayStrip";
@@ -104,7 +101,7 @@ export function TodayConsoleView({ model: c }: { model: ConsoleModel }) {
   );
 }
 
-function ConsoleHead({ model: c, onClose }: { model: ConsoleModel; onClose: () => void }) {
+function ConsoleHead({ model: c }: { model: ConsoleModel; onClose: () => void }) {
   const history = readyValue(c.history.days);
   const backlog = readyValue(c.backlog) ?? null;
   const progression = readyValue(c.progression);
@@ -140,13 +137,7 @@ function ConsoleHead({ model: c, onClose }: { model: ConsoleModel; onClose: () =
       {nagging && backlog ? <BacklogBar summary={backlog} onResolve={handleBacklog} /> : null}
       {c.notice ? <Notice text={c.notice} onDismiss={handleDismissNotice} /> : null}
       <div className="px-2.5 pt-2.5">
-        <ConsoleModeLine
-          model={c}
-          history={history}
-          balance={readyValue(c.balance)}
-          progression={progression}
-          onClose={onClose}
-        />
+        <ConsoleModeLine model={c} history={history} progression={progression} />
       </div>
     </div>
   );
@@ -155,17 +146,12 @@ function ConsoleHead({ model: c, onClose }: { model: ConsoleModel; onClose: () =
 function ConsoleModeLine({
   model: c,
   history,
-  balance,
   progression,
-  onClose,
 }: {
   model: ConsoleModel;
   history: DaySummary[] | undefined;
-  balance: BalanceView | undefined;
   progression: ProgressionView | undefined;
-  onClose: () => void;
 }) {
-  if (c.mode === "plan") return <PlanLine count={readyValue(c.plan.routines)?.length ?? 0} />;
   if (c.mode === "log") {
     return (
       <LogLine
@@ -175,18 +161,4 @@ function ConsoleModeLine({
       />
     );
   }
-  return (
-    <TrackLine
-      resolved={c.facts.scheduled - c.facts.open}
-      scheduled={c.facts.scheduled}
-      open={c.facts.open}
-      done={c.facts.done}
-      missed={c.facts.missed}
-      balance={balance}
-      progression={progression}
-      canSeal={c.facts.canSeal}
-      isToday={!c.lookingBack}
-      onSeal={onClose}
-    />
-  );
 }

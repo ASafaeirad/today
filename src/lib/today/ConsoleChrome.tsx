@@ -24,7 +24,7 @@ import {
   type LogSummary,
   type Mode,
 } from "./console";
-import { closeProjection, levelView, streakLine, type ProgressionView } from "./experience";
+import { levelView, streakLine, type ProgressionView } from "./experience";
 
 interface TopBarProps {
   date: LocalDate;
@@ -154,88 +154,12 @@ export function Notice({ text, onDismiss }: { text: string; onDismiss: () => voi
   );
 }
 
-interface ProgressLineProps {
-  resolved: number;
-  scheduled: number;
-  open: number;
-  done: number;
-  missed: number;
-  /** Undefined until the horizon has been read. */
-  balance: BalanceView | undefined;
-  /** Undefined until progression has been read. */
-  progression: ProgressionView | undefined;
-  /** False on a day with nothing to seal, and on one already sealed. */
-  canSeal: boolean;
-  /** False while looking back, where the line is not about today at all. */
-  isToday: boolean;
-  onSeal: () => void;
-}
-
-/**
- * The day's progress, written as the command that would finish it, and what
- * running it would bank.
- *
- * The projection is on the narrow layout too, because it is the reason to run
- * the command; the skip bank is not, because it is what a different key costs.
- */
-export function TrackLine({
-  resolved,
-  scheduled,
-  open,
-  done,
-  missed,
-  balance,
-  progression,
-  canSeal,
-  isToday,
-  onSeal,
-}: ProgressLineProps) {
-  return (
-    <CommandLine
-      action={open > 0 ? "seal --resolve-first" : "seal --now"}
-      disabled={!canSeal}
-      onClick={onSeal}
-    >
-      <CommandLineValue>
-        {resolved}/{scheduled}
-      </CommandLineValue>{" "}
-      resolved {isToday ? "today" : "that day"} · <CommandLineValue>{open}</CommandLineValue> open
-      {balance && (
-        <span className="hidden sm:inline">
-          {" · skip bank "}
-          <CommandLineValue>
-            {balance.available}/{balance.minted}
-          </CommandLineValue>
-        </span>
-      )}
-      {progression && (
-        <>
-          {" · "}
-          <CommandLineValue>
-            {closeProjection({ scheduled, done, missed }, progression.streak)}
-          </CommandLineValue>
-        </>
-      )}
-    </CommandLine>
-  );
-}
-
-/** The same reading where there is no room to spell it out twice. */
 export function BalanceItem({ balance }: { balance: BalanceView | undefined }) {
   if (balance === undefined) return null;
   return (
     <BarItem tone="muted" className="uppercase">
       {balanceLine(balance)}
     </BarItem>
-  );
-}
-
-/** The same line in plan mode: a count, and the setup that does not exist. */
-export function PlanLine({ count }: { count: number }) {
-  return (
-    <CommandLine action="routines --daily" disabled>
-      <CommandLineValue>{count}</CommandLineValue> active · no schedules to maintain
-    </CommandLine>
   );
 }
 

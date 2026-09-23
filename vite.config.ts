@@ -3,6 +3,8 @@ import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite-plus";
@@ -12,12 +14,48 @@ const dirname =
   typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 const ignorePatterns = [".design-sync/**", "convex/_generated/**", "src/routeTree.gen.ts"];
+const serviceWorkerTemplate = readFileSync(path.join(dirname, "src/sw.js"), "utf8");
+
+function serviceWorker() {
+  return {
+    name: "app-service-worker",
+    apply: "build" as const,
+    generateBundle(
+      _options: unknown,
+      bundle: Record<string, { fileName: string; code?: string; source?: string | Uint8Array }>,
+    ) {
+      const files = Object.values(bundle).sort((a, b) => a.fileName.localeCompare(b.fileName));
+      const hash = createHash("sha256");
+      for (const file of files) {
+        hash.update(file.fileName);
+        hash.update(file.code ?? file.source ?? "");
+      }
+      const urls = [
+        "/",
+        "/manifest.webmanifest",
+        "/icon.svg",
+        "/icon-192.png",
+        "/icon-512.png",
+        "/icon-maskable-512.png",
+        "/apple-touch-icon.png",
+        ...files.map((file) => `/${file.fileName}`),
+      ];
+      this.emitFile({
+        type: "asset",
+        fileName: "sw.js",
+        source: serviceWorkerTemplate
+          .replace("__CACHE_NAME__", `today-${hash.digest("hex").slice(0, 12)}`)
+          .replace("__PRECACHE_URLS__", JSON.stringify([...new Set(urls)])),
+      });
+    },
+  };
+}
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   server: {
     port: 3000,
   },
-  plugins: [tanstackRouter(), react(), tailwindcss()],
+  plugins: [tanstackRouter(), react(), tailwindcss(), serviceWorker()],
   staged: {
     "*": ["vp check --fix", "cspell"],
   },

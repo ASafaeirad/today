@@ -32,14 +32,13 @@
     "@tanstack/react-hotkeys": "0.10.0",
     "@tanstack/react-router": "1.170.21",
     "class-variance-authority": "0.7.1",
-    "clsx": "2.1.1",
+    "cn": "0.4.0",
     "convex-helpers": "0.1.123",
     "lucide-react": "1.29.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "7.84.0",
     "recharts": "3.10.1",
-    "tailwind-merge": "3.6.0",
     "valibot": "1.4.2"
   },
   "devDependencies": {

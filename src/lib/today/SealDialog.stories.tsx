@@ -1,4 +1,4 @@
-import { expect, fn, screen, userEvent } from "storybook/test";
+import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
 
 import preview from "#storybook/preview";
 
@@ -6,6 +6,10 @@ import type { ReceiptView } from "./experience";
 
 import { rowStatus, type DayView, type RosterEntry, type SealModel } from "./console";
 import { SealDialog } from "./SealDialog";
+
+function xpSegment(meter: HTMLElement, kind: "existing" | "gained"): HTMLElement {
+  return meter.querySelector<HTMLElement>(`[data-xp="${kind}"]`)!;
+}
 
 const DATE = "2026-09-11";
 const NAMES = ["Read 20 min", "Walk 3 km", "Meds", "Journal", "Stretch", "No phone after 22:00"];
@@ -53,7 +57,7 @@ const receipt: ReceiptView = {
   total: 23,
   experienceBefore: 103,
   experienceAfter: 126,
-  levelBefore: 4,
+  levelBefore: 3,
   levelAfter: 4,
 };
 
@@ -164,6 +168,32 @@ export const Receipt = meta.story({
     // The lifetime total has moved by exactly what the receipt says.
     await expect(screen.getByText("126 XP")).toBeInTheDocument();
 
+    const meter = screen.getByRole("meter");
+    const existing = xpSegment(meter, "existing");
+    const gained = xpSegment(meter, "gained");
+    // 103 XP starts at 43/60 in level 3; the gain fills its remaining 17 XP.
+    await expect(Number.parseFloat(existing.style.width)).toBeCloseTo((43 / 60) * 100);
+    await expect(Number.parseFloat(gained.style.left)).toBeCloseTo((43 / 60) * 100);
+    await expect(Number.parseFloat(gained.style.width)).toBeCloseTo((17 / 60) * 100);
+    await expect(existing).not.toHaveClass("animate-fill");
+    await expect(gained).toHaveClass("bg-done");
+    const animation = gained.getAnimations()[0]!;
+    animation.pause();
+    animation.currentTime = 0;
+    await expect(getComputedStyle(gained).transform).toBe("matrix(0, 0, 0, 1, 0, 0)");
+    await expect(screen.getByLabelText("43/60 to lv 4")).toBeInTheDocument();
+    animation.currentTime = Number(animation.effect!.getTiming().delay) + 310;
+    await expect(getComputedStyle(gained).transform).toBe("matrix(0.5, 0, 0, 1, 0, 0)");
+    // Number Flow receives one target when filling starts and animates the digits itself.
+    await waitFor(() => expect(screen.getByLabelText("60/60 to lv 4")).toBeInTheDocument());
+    await expect(meter).toHaveAccessibleName("level 3, 60 of 60 experience to level 4");
+    animation.finish();
+    await waitFor(() =>
+      expect(meter).toHaveAccessibleName("level 4, 6 of 80 experience to level 5"),
+    );
+    await expect(xpSegment(meter, "existing").style.width).toBe("0%");
+    await expect(xpSegment(meter, "gained").style.width).toBe("7.5%");
+
     const firstGain = screen.getByText("done marks × 6").closest("[data-reveal-order]");
     const lastGain = screen.getByText("no-miss streak 6d ×1.70").closest("[data-reveal-order]");
     await expect(firstGain).toHaveAttribute("data-reveal-order", "1");
@@ -187,7 +217,13 @@ export const LevelUp = meta.story({
   args: {
     seal: ceremony({
       stage: "receipt",
-      receipt: { ...receipt, experienceAfter: 121, levelBefore: 3, levelAfter: 4 },
+      receipt: {
+        ...receipt,
+        experienceBefore: 98,
+        experienceAfter: 121,
+        levelBefore: 3,
+        levelAfter: 4,
+      },
     }),
   },
   play: async () => {
@@ -199,7 +235,7 @@ export const LevelUp = meta.story({
       "level-up",
     );
     await expect(screen.getByText("LV 04 · WATCHKEEPER").closest("[data-reveal]")).toHaveStyle(
-      "animation-delay: 1.69s",
+      "animation-delay: 2.87s",
     );
     await expect(
       screen.getByText("LV 04 · WATCHKEEPER").closest("[data-reveal]")?.parentElement,
@@ -212,6 +248,77 @@ export const LevelUp = meta.story({
       "-mb-4.5",
       "border-t",
     );
+  },
+});
+
+export const GainWithinLevel = meta.story({
+  args: {
+    seal: ceremony({
+      stage: "receipt",
+      receipt: { ...receipt, experienceBefore: 126, experienceAfter: 149, levelBefore: 4 },
+    }),
+  },
+  play: async () => {
+    const meter = await screen.findByRole("meter");
+    await expect(meter).toHaveAccessibleName("level 4, 6 of 80 experience to level 5");
+    await expect(xpSegment(meter, "existing").style.width).toBe("7.5%");
+    await expect(xpSegment(meter, "gained").style.left).toBe("7.5%");
+    await expect(xpSegment(meter, "gained").style.width).toBe("28.75%");
+    await waitFor(() => expect(screen.getByLabelText("29/80 to lv 5")).toBeInTheDocument(), {
+      timeout: 3000,
+    });
+    await expect(meter).toHaveAccessibleName("level 4, 29 of 80 experience to level 5");
+  },
+});
+
+export const MultipleLevelUps = meta.story({
+  args: {
+    seal: ceremony({
+      stage: "receipt",
+      receipt: {
+        ...receipt,
+        experienceBefore: 19,
+        experienceAfter: 126,
+        levelBefore: 1,
+        released: 84,
+        total: 107,
+      },
+    }),
+  },
+  play: async () => {
+    const meter = await screen.findByRole("meter");
+    await expect(xpSegment(meter, "existing").style.width).toBe("95%");
+    await expect(xpSegment(meter, "gained").style.width).toBe("5%");
+    await waitFor(
+      () => expect(meter).toHaveAccessibleName("level 4, 6 of 80 experience to level 5"),
+      { timeout: 5000 },
+    );
+    await expect(xpSegment(meter, "gained").style.width).toBe("7.5%");
+  },
+});
+
+export const EmptyReceipt = meta.story({
+  args: {
+    seal: ceremony({
+      stage: "receipt",
+      receipt: {
+        ...receipt,
+        eligible: false,
+        doneExperience: 0,
+        baseExperience: 0,
+        streakExperience: 0,
+        total: 0,
+        experienceAfter: 103,
+        levelAfter: 3,
+      },
+    }),
+  },
+  play: async () => {
+    const meter = await screen.findByRole("meter");
+    await expect(Number.parseFloat(xpSegment(meter, "existing").style.width)).toBeCloseTo(
+      (43 / 60) * 100,
+    );
+    await expect(xpSegment(meter, "gained").style.width).toBe("0%");
   },
 });
 
@@ -232,6 +339,7 @@ export const StreakReset = meta.story({
         reset: true,
         total: 14,
         experienceAfter: 117,
+        levelAfter: 3,
       },
     }),
   },
@@ -258,6 +366,7 @@ export const BonusHeld = meta.story({
         streakExperience: 0,
         total: 16,
         experienceAfter: 119,
+        levelAfter: 3,
       },
     }),
   },

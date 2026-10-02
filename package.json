@@ -29,6 +29,7 @@
     "@convex-dev/auth": "0.0.94",
     "@fullstacksjs/toolbox": "4.23.1",
     "@hookform/resolvers": "5.7.1",
+    "@number-flow/react": "0.6.2",
     "@tanstack/react-hotkeys": "0.10.0",
     "@tanstack/react-router": "1.170.21",
     "class-variance-authority": "0.7.1",

@@ -8,7 +8,9 @@ import { rowStatus, type DayView, type RosterEntry, type SealModel } from "./con
 import { SealDialog } from "./SealDialog";
 
 function xpSegment(meter: HTMLElement, kind: "existing" | "gained"): HTMLElement {
-  return meter.querySelector<HTMLElement>(`[data-xp="${kind}"]`)!;
+  return meter.querySelector<HTMLElement>(
+    `[data-slot="${kind === "existing" ? "meter-existing" : "meter-addition"}"]`,
+  )!;
 }
 
 const DATE = "2026-09-11";

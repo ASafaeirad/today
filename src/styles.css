@@ -163,7 +163,7 @@
   --animate-flash: flash 0.09s steps(2) 1;
   --animate-seal-row: seal-row 0.18s steps(3) both;
   --animate-seal-progress: seal-progress 0.14s steps(2) both;
-  --animate-seal-gain: fill 0.6s steps(24) both;
+  --animate-meter-gain: fill 0.6s steps(24) both;
   --animate-seal-level-up: seal-level-up 0.32s steps(5) both;
 
   @keyframes cut {

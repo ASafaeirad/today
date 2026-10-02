@@ -9,6 +9,7 @@ export * from "./Input/Input.tsx";
 export * from "./Kbd/Kbd.tsx";
 export * from "./Label/Label.tsx";
 export * from "./Meter/Meter.tsx";
+export * from "./Meter/MeterGain.tsx";
 export * from "./Panel/Panel.tsx";
 export * from "./Row/Row.tsx";
 export * from "./Tab/Tab.tsx";

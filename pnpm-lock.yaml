@@ -45,6 +45,9 @@ importers:
       '@hookform/resolvers':
         specifier: 5.7.1
         version: 5.7.1(@standard-schema/spec@1.1.0)(react-hook-form@7.84.0(react@19.3.0))(valibot@1.4.2(typescript@7.0.2))(zod@4.4.3)
+      '@number-flow/react':
+        specifier: 0.6.2
+        version: 0.6.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/react-hotkeys':
         specifier: 0.10.0
         version: 0.10.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1129,6 +1132,12 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
+
+  '@number-flow/react@0.6.2':
+    resolution: {integrity: sha512-WjZuV4aA+vhRCgCF+adGLgFVVAJ8vdvq6EchRT2FiBIgElTXtDOA3YgkcMr9UHpvpS9v4H70AB5wZv0D9jc3QA==}
+    peerDependencies:
+      react: ^18 || ^19
+      react-dom: ^18 || ^19
 
   '@oslojs/asn1@1.0.0':
     resolution: {integrity: sha512-zw/wn0sj0j0QKbIXfIlnEcTviaCzYOY3V5rAyjR6YtOByFtJiT574+8p9Wlach0lZH9fddD4yb9laEAIl4vXQA==}
@@ -3001,6 +3010,9 @@ packages:
       jiti:
         optional: true
 
+  esm-env@1.2.2:
+    resolution: {integrity: sha512-Epxrv+Nr/CaL4ZcFGPJIYLWFom+YeV1DqMLHJoEd9SYRxNbaFruBwfEX/kkHUJf55j2+TUbmDcmuilbP1TmXHA==}
+
   espree@11.2.0:
     resolution: {integrity: sha512-7p3DrVEIopW1B1avAGLuCSh1jubc01H2JHc8B4qqGblmg5gI9yumBgACjWo4JlIc04ufug4xJ3SQI8HkS/Rgzw==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
@@ -3475,6 +3487,9 @@ packages:
   node-releases@2.0.52:
     resolution: {integrity: sha512-MRlTqhAfoMx/4mhEbPo3Hi02g9LJZaJkka69V6h67Cb1gjrAG0jsTE4CZX1eptNx+VCAwJmfpnDIF4P0Nh1A7A==}
     engines: {node: '>=18'}
+
+  number-flow@0.6.2:
+    resolution: {integrity: sha512-MCnImG4Q5vPwhSXnov56nOuyyKn6LC+Qd7II1UiKc+ACRtug5iAtn0+CwXNxM38AC5lSowEY+oYEtZX2qMnUyw==}
 
   oauth4webapi@3.8.6:
     resolution: {integrity: sha512-iwemM91xz8nryHti2yTmg5fhyEMVOkOXwHNqbvcATjyajb5oQxCQzrNOA6uElRHuMhQQTKUyFKV9y/CNyg25BQ==}
@@ -4897,6 +4912,13 @@ snapshots:
       '@emnapi/runtime': 1.9.2
       '@tybys/wasm-util': 0.10.3
     optional: true
+
+  '@number-flow/react@0.6.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      esm-env: 1.2.2
+      number-flow: 0.6.2
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   '@oslojs/asn1@1.0.0':
     dependencies:
@@ -6385,6 +6407,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  esm-env@1.2.2: {}
+
   espree@11.2.0:
     dependencies:
       acorn: 8.18.0
@@ -6750,6 +6774,10 @@ snapshots:
   natural-compare@1.4.0: {}
 
   node-releases@2.0.52: {}
+
+  number-flow@0.6.2:
+    dependencies:
+      esm-env: 1.2.2
 
   oauth4webapi@3.8.6: {}
 

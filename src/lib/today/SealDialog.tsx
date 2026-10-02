@@ -1,8 +1,10 @@
+import NumberFlow, { continuous } from "@number-flow/react";
 import { useHotkeys } from "@tanstack/react-hotkeys";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { Outcome } from "#domain/outcome";
 
+import { levelThreshold } from "#domain/experience";
 import { cn } from "#lib/cn";
 import {
   BarItem,
@@ -359,7 +361,7 @@ function ReceiptStage({ receipt, onClose, closeRef }: ReceiptStageProps) {
   const noteDelay = totalDelay + 260;
   const hasNote = receipt.reset || receipt.held;
   const progressDelay = noteDelay + (hasNote ? 180 : 0);
-  const lifetimeDelay = progressDelay + 420;
+  const lifetimeDelay = progressDelay + 840 + (receipt.levelAfter - receipt.levelBefore) * 760;
   const levelUpDelay = lifetimeDelay + 180;
 
   useEffect(() => {
@@ -406,24 +408,7 @@ function ReceiptStage({ receipt, onClose, closeRef }: ReceiptStageProps) {
           style={revealStyle(0, progressDelay)}
           data-reveal="level-progress"
         >
-          <Meter
-            tone="ink"
-            value={level.percent}
-            aria-label={`level ${level.level}, ${level.into} of ${level.span} experience to level ${level.level + 1}`}
-          >
-            <MeterTrack className="h-2">
-              <MeterIndicator
-                animated
-                style={{
-                  ...revealStyle(0, progressDelay),
-                  animationDuration: "360ms",
-                }}
-              />
-            </MeterTrack>
-          </Meter>
-          <Text size="xs" tone="muted" className="whitespace-nowrap">
-            {level.spanLine}
-          </Text>
+          <ReceiptProgress receipt={receipt} revealAt={progressDelay} />
         </div>
         {leveledUp(receipt) ? (
           <div
@@ -465,6 +450,63 @@ function ReceiptStage({ receipt, onClose, closeRef }: ReceiptStageProps) {
           CLOSE
         </Button>
       </DialogFooter>
+    </>
+  );
+}
+
+/** Keep banked experience still, then add the gain through each crossed level. */
+function ReceiptProgress({ receipt, revealAt }: { receipt: ReceiptView; revealAt: number }) {
+  const before = levelView(receipt.experienceBefore);
+  const after = levelView(receipt.experienceAfter);
+  const [currentLevel, setCurrentLevel] = useState(before.level);
+  const [filling, setFilling] = useState(false);
+  const level = levelView(levelThreshold(currentLevel));
+  const start = Math.max(receipt.experienceBefore, level.threshold) - level.threshold;
+  const end = Math.min(receipt.experienceAfter, level.next) - level.threshold;
+  const baseline = (start / level.span) * 100;
+  const gain = ((end - start) / level.span) * 100;
+  const into = filling ? end : start;
+
+  return (
+    <>
+      <Meter
+        tone="ink"
+        value={(into / level.span) * 100}
+        aria-label={`level ${level.level}, ${into} of ${level.span} experience to level ${level.level + 1}`}
+      >
+        <MeterTrack key={currentLevel} className="h-2">
+          <MeterIndicator style={{ width: `${baseline}%` }} data-xp="existing" />
+          <span
+            aria-hidden="true"
+            data-xp="gained"
+            className="absolute inset-y-0 origin-left animate-seal-gain bg-done"
+            style={{
+              left: `${baseline}%`,
+              width: `${gain}%`,
+              animationDelay: `${currentLevel === before.level ? revealAt + 240 : 160}ms`,
+            }}
+            onAnimationStart={() => setFilling(true)}
+            onAnimationEnd={() => {
+              if (currentLevel < after.level) {
+                setCurrentLevel(currentLevel + 1);
+                setFilling(false);
+              }
+            }}
+          />
+        </MeterTrack>
+      </Meter>
+      <Text size="xs" tone="muted" className="whitespace-nowrap tabular-nums">
+        <NumberFlow
+          key={currentLevel}
+          value={into}
+          aria-label={`${into}/${level.span} to lv ${level.level + 1}`}
+          format={{ useGrouping: false }}
+          suffix={`/${level.span} to lv ${level.level + 1}`}
+          plugins={[continuous]}
+          transformTiming={{ duration: 600, easing: "linear" }}
+          opacityTiming={{ duration: 120, easing: "linear" }}
+        />
+      </Text>
     </>
   );
 }
